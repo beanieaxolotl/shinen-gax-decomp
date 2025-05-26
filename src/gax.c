@@ -18,17 +18,31 @@ void GAX2_init_song() {}
 
 // void GAX2_init_soundhw
 // https://decomp.me/scratch/mBHfv - beanieaxolotl
-// accuracy -> 21.54%
+// accuracy -> 43.46%
 
 void GAX2_init_soundhw() {
 
-    // TO DO: most of the stuff up here
-    
-    REG_DMA1CNT_L              = 4;
-    REG_FIFO_A, REG_SOUNDCNT_X = 0;
-    REG_SOUNDBIAS              = 0x42;
+    if (GAX_ram->dma2cnt_unk == 0) {
+        REG_SOUNDCNT_H = 0xB04;
+        REG_FIFO_B = 0;
+        
+    } else {
+        REG_DMA1CNT_L, REG_DMA2CNT_L = 0;
+        REG_SOUNDCNT_H = 0xFB0C;
+        REG_FIFO_B  = 0;
+        REG_DMA2DAD = REG_FIFO_B;
+        REG_DMA2SAD = GAX_ram->dma2sad;
+    }
 
-    REG_DMA1DAD = REG_FIFO_A;	
+    REG_FIFO_B = 0;
+    
+    REG_DMA1CNT_L  = 4;
+    REG_FIFO_A     = 0;
+    REG_SOUNDCNT_X = 0;
+    REG_SOUNDBIAS  = 0x42;
+
+    REG_DMA1DAD = REG_FIFO_A;
+    REG_DMA1SAD = GAX_ram->dma1sad_unk;
 
 }
 
