@@ -29,6 +29,10 @@ void GAXTracker_process_perflist() {
 
 }
 
+// void GAXTracker_process_step
+// https://decomp.me/scratch/vwY7I - beanieaxolotl
+// accuracy -> 55.48%
+
 void GAXTracker_process_step(GAX_channel *ch) {
 
     u16 note;
@@ -38,6 +42,7 @@ void GAXTracker_process_step(GAX_channel *ch) {
     
     GAX_instrument*   instrument;
     GAX_playbackvars* playback_vars;
+    GAXChannelInfo*   channel_info;
     
     b8  get_next_note; // what
     u8* seq_data;
@@ -63,9 +68,8 @@ void GAXTracker_process_step(GAX_channel *ch) {
         if (ch->empty_track) {
             // ignore the empty track
             return;
-        } 
-        
-        if (ch->rle_delay > 0) {
+            
+        } else if (ch->rle_delay) {
             ch->rle_delay--;
             
         } else {
@@ -121,8 +125,7 @@ void GAXTracker_process_step(GAX_channel *ch) {
     } else {
         note           = ch->next_semitone;
         instrument_idx = ch->next_instrument;
-        fx_type  = 0; 
-        fx_param = 0;
+        fx_type, fx_param = 0;
     }
     
     if (fx_type != TONE_PORTA) {
@@ -133,7 +136,7 @@ void GAXTracker_process_step(GAX_channel *ch) {
                 // the instrument has no sustain point               
                 ch->semitone_pitch = 35536;
                 ch->wave_porta_val = 0;
-                ch->channel_status = NOTE_OFF_STATUS; // seems to be the only value
+                ch->priority       = 2<<30; // channel is now freed
             }
             ch->is_note_off = TRUE;
             
@@ -164,12 +167,11 @@ void GAXTracker_process_step(GAX_channel *ch) {
         ch->target_pitch      = 0;
         ch->perfstep_speed    = instrument->perfstep_speed;
 
-        if (!instrument->blank) {
-            // TO DO: GAX_ram is not really well documented yet
-            // 
-        } else {
-            // discard the work done if the instrument is blank
-            ch->instrument = NULL;
+        if (instrument->blank) {
+            channel_info = GAX_ram->params->channel_info;
+            if ((channel_info != 0) && (ch->channel_index > 0)) {
+                channel_info[ch->channel_index].instrument = instrument_idx;
+            }
         }
         
     }
@@ -224,8 +226,6 @@ void GAXTracker_process_step(GAX_channel *ch) {
         default:
             break;
     }
-    return;
-    
 }
 
 
