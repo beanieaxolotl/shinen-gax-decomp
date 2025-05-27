@@ -17,8 +17,65 @@ void GAXTracker_open() {
 
 }
 
-void GAXTracker_process_envelope() {
+// u32 GAXTracker_process_envelope
+// https://decomp.me/scratch/5lCKZ - beanieaxolotl
+// accuracy -> 68.92%
 
+u32 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos) {
+    
+    u32         current_point;
+    s32         time = 0;
+    u16         x1;
+    GAX_volenv *y1;
+
+    x1 = *envpos;
+    *envpos = x1+1;
+    current_point = x1;
+
+    if ((volenv->sustain_point != GAX_NOTSET) && !ch->is_note_off 
+        && (current_point == (&volenv->env_point)[volenv->sustain_point].x)) {
+        // pause the envelope until a note off is commenced
+        *envpos = x1;  
+    } 
+    if (*(u16*)(volenv + time * sizeof(GAX_volenv_point)) == current_point) {
+        
+        if ((&volenv->point_count)[volenv->point_count * sizeof(GAX_volenv_point)]
+            && (volenv->loop_end == GAX_NOTSET || (volenv->loop_end < time))) {
+            // free up this channel when the envelope stops
+            ch->semitone_pitch = 35536;
+            ch->wave_porta_val = 0;
+            ch->priority       = 2<<30;
+        }
+        *envpos = x1;
+    }
+
+    time = volenv->point_count-1; // gets length of the envelope in frames
+
+    if (!ch->is_note_off && volenv->loop_start != GAX_NOTSET
+        && volenv->loop_end != GAX_NOTSET 
+        && current_point == (&volenv->env_point)[volenv->loop_end].x) {
+        // loop back to the previously defined loop start point
+        *envpos = (&volenv->env_point)[volenv->loop_start].x;
+    }
+
+    for (x1 = volenv->env_point.x; x1 < current_point; time++) {
+        //x1._0_1_ = y1[1].point_count;
+        //x1._1_1_ = y1[1].sustain_point;
+        y1 = (GAX_volenv*)&y1->env_point.volume;
+    }
+
+    if (current_point == (&volenv->env_point)[time].x) {
+        // if we're directly on the point, apply the volume we see
+        return (&volenv->env_point)[time].volume;
+        
+    } else {
+        // if not, apply the precalculated lerp between the two points
+        return ((&volenv->env_point)[time].lerp * 
+                (current_point - (u16)((s32)volenv + time-1))) 
+              + (&volenv->point_count)[time];
+    }   
+    return;
+    
 }
 
 void GAXTracker_process_frame() {
@@ -31,7 +88,7 @@ void GAXTracker_process_perflist() {
 
 // void GAXTracker_process_step
 // https://decomp.me/scratch/vwY7I - beanieaxolotl
-// accuracy -> 55.48%
+// accuracy -> 55.58%
 
 void GAXTracker_process_step(GAX_channel *ch) {
 
@@ -83,16 +140,8 @@ void GAXTracker_process_step(GAX_channel *ch) {
                 ch->rle_delay = seq_data[1]-1;
                 ch->sequence  = seq_data+2;
                 
-            } else if (seq_byte[0] & FULL_STEP) {
-                // note + instrument + fx
-                note           = seq_data[0];
-                instrument_idx = seq_data[1];
-                fx_type        = seq_data[2];
-                fx_param       = seq_data[3];
-                seq_data += 4;
-                
             } else {
-    
+                
                 note = seq_byte[0] & EMPTY_STEP;
                 
                 if (seq_byte[0] & EMPTY_STEP) {
@@ -112,6 +161,16 @@ void GAXTracker_process_step(GAX_channel *ch) {
                     fx_param = seq_data[2];
                     seq_data += 3;
                 }
+            }
+
+            if (seq_byte[0] & FULL_STEP) {
+                // note + instrument + fx
+                note           = seq_data[0];
+                instrument_idx = seq_data[1];
+                fx_type        = seq_data[2];
+                fx_param       = seq_data[3];
+                seq_data += 4;
+                
             }
             ch->sequence = seq_data;
             
@@ -228,7 +287,47 @@ void GAXTracker_process_step(GAX_channel *ch) {
     }
 }
 
+// u8 GAXTracker_render
+// https://decomp.me/scratch/oJTi6 - beanieaxolotl
+// accuracy -> 72.50%
 
-void GAXTracker_render() {
+u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
 
+    u16 delay_frames;
+    u8  perf_var;
+    s16 song_flags;
+    
+    if (replayer->no_instruments) {
+        ch->instrument = NULL;
+    }
+    
+    if (replayer->skip_pattern) {
+        if (ch->delay_frames &&
+            (delay_frames = ch->delay_frames-1,
+             ch->delay_frames = delay_frames,
+             delay_frames = 0)) {
+            GAXTracker_process_step(ch);
+        }
+        // TO DO
+        if (song_flags || (&replayer->unk14 > 0)) {
+            GAXTracker_process_step(ch);
+        }
+    }
+    perf_var = ch->perflist_timer;
+    if (ch->instrument && ch->perflist_timer == 0) {
+        if (ch->perfstep_speed > 0) {
+            goto process_audio;
+        }
+        GAXTracker_process_perflist(ch);
+        perf_var = ch->perfstep_speed;
+    }
+    ch->perflist_timer = perf_var-1;
+
+    process_audio:
+        GAXTracker_process_frame(ch);
+        if (ch->ignore) {
+            return GAXTracker_generate_audio(ch, replayer, replayer->unk0, 0);
+        } else {
+            return 0;
+        }
 }
