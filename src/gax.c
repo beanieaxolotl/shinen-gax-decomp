@@ -50,8 +50,8 @@ void GAX2_init_volboost() {}
 void GAX_clear_mem() {}
 
 // void GAX2_new
-// https://decomp.me/scratch/Iwq4O - EstexNT
-// accuracy -> 93.87%
+// https://decomp.me/scratch/G9TYg - EstexNT
+// accuracy -> 100%
 
 void GAX2_new(GAXParams* params) {
 
