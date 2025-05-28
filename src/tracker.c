@@ -318,46 +318,39 @@ void GAXTracker_process_step(GAX_channel *ch) {
 }
 
 // u8 GAXTracker_render
-// https://decomp.me/scratch/oJTi6 - beanieaxolotl
-// accuracy -> 72.50%
+// https://decomp.me/scratch/OGTg1 - AArt1256
+// accuracy -> 87.28%
 
 u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
-
-    u16 delay_frames;
-    u8  perf_var;
-    s16 song_flags;
-    
     if (replayer->no_instruments) {
         ch->instrument = NULL;
     }
     
     if (replayer->skip_pattern) {
-        if (ch->delay_frames &&
-            (delay_frames = ch->delay_frames-1,
-             ch->delay_frames = delay_frames,
-             delay_frames = 0)) {
-            GAXTracker_process_step(ch);
-        }
-        // TO DO
-        if (song_flags || (&replayer->unk14 > 0)) {
+        if (((s16)ch->delay_frames) != 0) {
+            if ((--ch->delay_frames)==0) {
+                GAXTracker_process_step(ch);
+            }
+        } 
+        if ((replayer->stop_on_song_end || replayer->is_song_end) && replayer->unk14) {
             GAXTracker_process_step(ch);
         }
     }
-    perf_var = ch->perflist_timer;
+
     if (ch->instrument && ch->perflist_timer == 0) {
-        if (ch->perfstep_speed > 0) {
+        if (ch->perfstep_speed == 0) { // no perflist?
             goto process_audio;
         }
         GAXTracker_process_perflist(ch);
-        perf_var = ch->perfstep_speed;
+        ch->perflist_timer = ch->perfstep_speed-1;
+    } else {
+        ch->perflist_timer--;
     }
-    ch->perflist_timer = perf_var-1;
 
     process_audio:
         GAXTracker_process_frame(ch);
         if (ch->ignore) {
             return GAXTracker_generate_audio(ch, replayer, replayer->unk0, 0);
-        } else {
-            return 0;
         }
+        return 0;
 }
