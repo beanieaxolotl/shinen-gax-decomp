@@ -37,7 +37,7 @@ void GAXTracker_open(GAX_channel *ch) {
     ch->delay_frames      = 0;
     ch->toneporta_lerp    = 0;
     ch->target_pitch      = 0;
-    ch->priority          = 2<<30;
+    ch->priority          = -0x80000000;
     ch->unk1              = 0;
 
     if (GAX_ram->music_pitch == 0) {
@@ -71,9 +71,9 @@ u32 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos
         if ((&volenv->point_count)[volenv->point_count * sizeof(GAX_volenv_point)]
             && (volenv->loop_end == GAX_NOTSET || (volenv->loop_end < time))) {
             // free up this channel when the envelope stops
-            ch->semitone_pitch = 35536;
+            ch->semitone_pitch = -30000;
             ch->wave_porta_val = 0;
-            ch->priority       = 2<<30;
+            ch->priority       = -0x80000000;
         }
         *envpos = x1;
     }
@@ -222,9 +222,9 @@ void GAXTracker_process_step(GAX_channel *ch) {
             if (ch->instrument > 0 && ch->instrument->volume_envelope->sustain_point == 0xFF) {
                 // hard cut the note if 
                 // the instrument has no sustain point               
-                ch->semitone_pitch = 35536;
+                ch->semitone_pitch = -30000;
                 ch->wave_porta_val = 0;
-                ch->priority       = 2<<30; // channel is now freed
+                ch->priority       = -0x80000000; // channel is now freed
             }
             ch->is_note_off = TRUE;
             
