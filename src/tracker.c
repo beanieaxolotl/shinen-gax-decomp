@@ -225,7 +225,7 @@ void GAXTracker_process_step(GAX_channel *ch) {
                 // the instrument has no sustain point               
                 ch->semitone_pitch = -30000;
                 ch->wave_porta_val = 0;
-                ch->priority       = -0x80000000; // channel is now freed
+                ch->priority       = 1 << 31; // channel is now freed
             }
             ch->is_note_off = TRUE;
             
