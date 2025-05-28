@@ -14,8 +14,8 @@ void GAXTracker_generate_audio() {
 }
 
 // u32 GAXTracker_open
-// https://decomp.me/scratch/BHMdc - beanieaxolotl
-// accuracy -> 84%
+// https://decomp.me/scratch/g9rdn - AArt1256
+// accuracy -> 99%
 
 void GAXTracker_open(GAX_channel *ch) {
     
@@ -37,14 +37,15 @@ void GAXTracker_open(GAX_channel *ch) {
     ch->delay_frames      = 0;
     ch->toneporta_lerp    = 0;
     ch->target_pitch      = 0;
-    ch->priority          = -0x80000000;
+    ch->priority          = 1 << 31; // set MSB of s32
     ch->unk1              = 0;
 
+
     if (GAX_ram->music_pitch == 0) {
-        //__udivdi3(0,1,*(undefined2 *)((int)GAX_ram->memory_size + 2),0);
-        GAX_ram->music_pitch = __udivdi3(GAX_ram->scratch_mem_size,0);
+        GAX_ram->music_pitch = ((u64)0x100000000) / *(((u16*)GAX_ram->unk2C)+1);
     }
 }
+
 
 // u32 GAXTracker_process_envelope
 // https://decomp.me/scratch/5lCKZ - beanieaxolotl
