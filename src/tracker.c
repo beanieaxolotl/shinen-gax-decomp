@@ -13,8 +13,37 @@ void GAXTracker_generate_audio() {
 
 }
 
-void GAXTracker_open() {
+// u32 GAXTracker_open
+// https://decomp.me/scratch/BHMdc - beanieaxolotl
+// accuracy -> 84%
 
+void GAXTracker_open(GAX_channel *ch) {
+    
+    ch->wave_position  = 0;
+    ch->waveslot_idx   = 0;
+    ch->instrument     = NULL;
+    ch->semitone_pitch = -30000;
+
+    ch->wave_direction    = 1;
+    
+    ch->instrument_volume = 255;
+    ch->mixing_volume     = 255;
+    
+    ch->ignore            = FALSE;
+    ch->enable_modulation = FALSE;
+    
+    ch->rle_delay         = 0;
+    ch->empty_track       = FALSE;
+    ch->delay_frames      = 0;
+    ch->toneporta_lerp    = 0;
+    ch->target_pitch      = 0;
+    ch->priority          = 2<<30;
+    ch->unk1              = 0;
+
+    if (GAX_ram->music_pitch == 0) {
+        //__udivdi3(0,1,*(undefined2 *)((int)GAX_ram->memory_size + 2),0);
+        GAX_ram->music_pitch = __udivdi3(GAX_ram->scratch_mem_size,0);
+    }
 }
 
 // u32 GAXTracker_process_envelope
