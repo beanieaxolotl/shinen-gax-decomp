@@ -117,8 +117,9 @@ void GAXTracker_process_perflist() {
 }
 
 // void GAXTracker_process_step
-// https://decomp.me/scratch/vwY7I - beanieaxolotl
-// accuracy -> 55.58%
+// https://decomp.me/scratch/ocx3P - AnnoyedArt1256
+// accuracy -> 63.15%
+
 
 void GAXTracker_process_step(GAX_channel *ch) {
 
@@ -155,54 +156,42 @@ void GAXTracker_process_step(GAX_channel *ch) {
         if (ch->empty_track) {
             // ignore the empty track
             return;
-            
         } else if (ch->rle_delay) {
             ch->rle_delay--;
-            
         } else {
             
-            seq_data = ch->sequence;
-            seq_byte = (u8*)seq_data;
+            seq_byte = (u8*)ch->sequence;
     
             // read the step data here
             if (seq_byte[0] == RUN_LENGTH) {
                 // multiple empty steps (RLE compression)
-                ch->rle_delay = seq_data[1]-1;
-                ch->sequence  = seq_data+2;
-                
+                ch->rle_delay = seq_byte[1]-1;
+                ch->sequence  = seq_byte+2;
             } else {
-                
-                note = seq_byte[0] & EMPTY_STEP;
-                
-                if (seq_byte[0] & EMPTY_STEP) {
-                    // empty step
-                    ch->sequence++;
-                } 
-                if (note < INSTR_ONLY) {
-                    // instrument only
+                if (seq_byte[0] & 0x80) {
+                    if ((seq_byte[0] & EMPTY_STEP) == 0) {
+                        ch->sequence = seq_byte+1;
+                    } else if ((seq_byte[0] & EMPTY_STEP) < INSTR_ONLY) {
+                        instrument_idx = seq_byte[1];
+                        fx_type, fx_param = 0;
+                        seq_byte += 2;
+                    } else {
+                        // effect only
+                        note, instrument_idx = 0;
+                        fx_type  = seq_byte[1];
+                        fx_param = seq_byte[2];
+                        seq_byte += 3;
+                    }
+                }  else {
+                    // note + instrument + fx
+                    note           = seq_data[0];
                     instrument_idx = seq_data[1];
-                    fx_type, fx_param = 0;
-                    seq_data += 2;
-                    
-                } else {
-                    // effect only
-                    note, instrument_idx = 0;
-                    fx_type  = seq_data[1];
-                    fx_param = seq_data[2];
-                    seq_data += 3;
+                    fx_type        = seq_data[2];
+                    fx_param       = seq_data[3];
+                    seq_byte += 4;
                 }
+                ch->sequence = seq_byte;
             }
-
-            if (seq_byte[0] & FULL_STEP) {
-                // note + instrument + fx
-                note           = seq_data[0];
-                instrument_idx = seq_data[1];
-                fx_type        = seq_data[2];
-                fx_param       = seq_data[3];
-                seq_data += 4;
-                
-            }
-            ch->sequence = seq_data;
             
             // special handler for note delay
             if (fx_type == NOTE_DELAY && fx_param >> 4 == 0xD) {
@@ -220,20 +209,20 @@ void GAXTracker_process_step(GAX_channel *ch) {
     if (fx_type != TONE_PORTA) {
         // note off handler
         if (note == 1) {
-            if (ch->instrument > 0 && ch->instrument->volume_envelope->sustain_point == 0xFF) {
+            if (ch->instrument && ch->instrument->volume_envelope->sustain_point == 0xFF) {
                 // hard cut the note if 
                 // the instrument has no sustain point               
                 ch->semitone_pitch = -30000;
                 ch->wave_porta_val = 0;
                 ch->priority       = 1 << 31; // channel is now freed
+                ch->instrument     = NULL;
             }
             ch->is_note_off = TRUE;
-            
         } else if (note > 1) {
             // convert note into pitch
             // this subtracts 2 from the note
             // value since 0x0 and 0x1 are reserved
-            ch->cur_pitch   = (note-2)*32;
+            ch->cur_pitch = (note-2)<<5;
             ch->is_note_off = FALSE;
         }
     }
@@ -247,8 +236,9 @@ void GAXTracker_process_step(GAX_channel *ch) {
         ch->volenv_timer   = 0;
         ch->vibtable_index = 0;
         ch->vibrato_wait   = instrument->vibrato_wait;
-        
-        ch->cur_perfstep, ch->perflist_timer = 0;
+        ch->cur_perfstep = 0;
+        ch->perflist_timer = 0;
+        ch->perfstep_delay = 0;
         
         ch->instrument_volume = 255;
         ch->is_note_off       = FALSE;
@@ -257,6 +247,8 @@ void GAXTracker_process_step(GAX_channel *ch) {
         ch->perfstep_speed    = instrument->perfstep_speed;
 
         if (instrument->blank) {
+            ch->instrument = NULL;
+        } else {
             channel_info = GAX_ram->params->channel_info;
             if ((channel_info != 0) && (ch->channel_index > 0)) {
                 channel_info[ch->channel_index].instrument = instrument_idx;
@@ -316,6 +308,7 @@ void GAXTracker_process_step(GAX_channel *ch) {
             break;
     }
 }
+
 
 // u8 GAXTracker_render
 // https://decomp.me/scratch/OGTg1 - AArt1256
