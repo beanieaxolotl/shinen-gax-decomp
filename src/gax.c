@@ -234,7 +234,6 @@ void GAX2_calc_mem(GAXParams* params) {
         fxch   = -1;
         prio   = INT32_MAX;
         note   = -1;
-        volume = 255;
         
         if (fxparams->fxch != (u16)-1) {
             fxch = fxparams->fxch;
