@@ -210,7 +210,59 @@ void GAX2_calc_mem(GAXParams* params) {
 
   b8 GAX2_init(GAXParams* params) {}
   b8 GAX2_jingle(const void* jingle) {}
- u32 GAX2_fx(const GAXFXParams* fxparams) {}
+
+// u32 GAX2_fx
+// https://decomp.me/scratch/krNc3
+// accuracy -> 62.05%
+
+ u32 GAX2_fx(const GAXFXParams* fxparams) {
+
+    s32 prio;
+    s16 volume;
+    s32 fxch;
+    u32 note;
+    s32 temp;
+    
+    if (fxparams == NULL) {
+        GAX_ASSERT("GAX2_FX", "FXPARAMS_ARG IS NULL");
+        
+    } else if (fxparams->fxid == (u32)-1) {
+        GAX_ASSERT("GAX2_FX","FXPARAMS->FXID IS GAX_DEFAULT");
+        
+    } else {
+        
+        fxch   = -1;
+        prio   = INT32_MAX;
+        note   = -1;
+        volume = 255;
+        
+        if (fxparams->fxch != (u16)-1) {
+            fxch = fxparams->fxch;
+        }
+        if (fxparams->prio != -1) {
+            prio = fxparams->prio;
+        }                
+        if (fxparams->note != -1) {
+            note = fxparams->note;
+        }           
+        if (fxparams->volume != (u16)-1) {
+            volume = fxparams->volume;
+        }
+        if (volume > 255) {
+            volume = 255;
+        }
+        
+        temp = GAX_fx_ex(fxparams->fxid, fxch, prio, note);
+        if (temp != -1) {
+            *(u8*)&GAX_ram->fx_channels[temp].fxvol = volume;
+            return temp;
+        }    
+    }
+    // no free FX channel is found / 
+    // sound is at higher prio than fxparams->prio
+    return -1;
+    
+}
 
 // main
 void GAX_irq() {}
