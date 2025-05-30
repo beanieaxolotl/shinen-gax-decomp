@@ -227,24 +227,26 @@ void GAX_fx_note(s32 fxch, s32 note) {}
 
 // u32 GAX_fx_status
 // https://decomp.me/scratch/9rpus - beanieaxolotl
-// accuracy -> 90.71%
+// accuracy -> 96.14%
 
  u32 GAX_fx_status(s32 fxch) {
 
-    u32 cur_fx;
+    u32 current_sound;
     
     if (fxch < 0 || fxch >= GAX_ram->num_fx_channels) {
-        // no FX is being played on this channel
-        cur_fx = 0;
+        // no sound is being played on this FX channel
+        current_sound = 0;
     } else {
-        // to do: this is kind of awkward looking        
+        // to do: this is kind of awkward     
         if (GAX_ram->fx_channels[fxch].fxch.priority == 1 << 31) {
-            *(u8 *)((s32)GAX_ram->fxch + (fxch-12)) = 0;
+            *(u8 *)((s32)GAX_ram->fxch + fxch-0xC) = 0;
         }
-        cur_fx = *(u8 *)(u32*)((int)GAX_ram->fxch - fxch-12);
+        // sound is being played on this FX channel, get the sound ID
+        current_sound = *(u8 *)(u32*)(fxch-0xC + (int)GAX_ram->fxch);
     }
-    return cur_fx;
+    return current_sound;
 }
+
 
 void GAX_stop_fx(s32 fxch) {}
 void GAX_set_music_volume(s32 ch, u32 vol) {}
