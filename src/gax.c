@@ -213,7 +213,7 @@ void GAX2_calc_mem(GAXParams* params) {
 
 // u32 GAX2_fx
 // https://decomp.me/scratch/krNc3
-// accuracy -> 62.05%
+// accuracy -> 64.79%
 
  u32 GAX2_fx(const GAXFXParams* fxparams) {
 
