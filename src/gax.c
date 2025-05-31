@@ -274,7 +274,20 @@ void GAX_resume_music() {}
 void GAX_restore_fx(s32 fxch, const void* buf) {}
  u32 GAX_fx(s32 fxid) {}
  u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {}
-void GAX_fx_note(s32 fxch, s32 note) {}
+
+// void GAX_fx_note
+// https://decomp.me/scratch/AEzPr - beanieaxolotl
+// accuracy -> 93.97%
+
+void GAX_fx_note(s32 fxch, s32 note) {
+    if (note < 3821 && fxch > -1 
+        && fxch < GAX_ram->num_fx_channels) {
+        if (GAX_ram->fx_channels[fxch].fxch.instrument) {
+            GAX_ram->fx_channels[fxch].fxch.cur_pitch = note;
+            GAX_ram->fx_channels[fxch].bool4A         = TRUE;
+        }
+    }
+}
 
 // u32 GAX_fx_status
 // https://decomp.me/scratch/9rpus - beanieaxolotl
