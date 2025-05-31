@@ -284,7 +284,7 @@ void GAX_fx_note(s32 fxch, s32 note) {
         && fxch < GAX_ram->num_fx_channels) {
         if (GAX_ram->fx_channels[fxch].fxch.instrument) {
             GAX_ram->fx_channels[fxch].fxch.cur_pitch = note;
-            GAX_ram->fx_channels[fxch].bool4A         = TRUE;
+            GAX_ram->fx_channels[fxch].nofixedfreq    = TRUE;
         }
     }
 }
