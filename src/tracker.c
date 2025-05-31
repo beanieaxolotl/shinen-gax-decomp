@@ -1,9 +1,28 @@
 #include "gax.h"
 
+// void GAXFx_open
+// https://decomp.me/scratch/lR5Xx - beanieaxolotl
+// accuracy -> 94.10%
 
-void GAXFx_open() {
+void GAXFx_open(GAX_channel *fxch) {
+    
+    GAXTracker_open(fxch);
+    
+    fxch[1].rle_delay    = 0;
+    fxch[1].unk1         = 0;
+    fxch[1].ignore       = FALSE;
+    fxch[1].waveslot_idx = 0;
+    fxch[1].empty_track  = FALSE;
+
+    fxch->unk1          = GAX_ram->unk5B;
+    fxch->channel_index = 255;
+
+    if (GAX_ram->fx_pitch == 0) {
+        GAX_ram->fx_pitch = ((u64)0x100000000) / *(((u16*)GAX_ram->memory_size)+1);
+    } 
 
 }
+
 
 void GAXFx_render() {
 
@@ -16,6 +35,7 @@ void GAXTracker_generate_audio() {
 // u32 GAXTracker_open
 // https://decomp.me/scratch/g9rdn - AArt1256
 // accuracy -> 99%
+// edits by beanieaxolotl
 
 void GAXTracker_open(GAX_channel *ch) {
     
@@ -42,7 +62,7 @@ void GAXTracker_open(GAX_channel *ch) {
 
 
     if (GAX_ram->music_pitch == 0) {
-        GAX_ram->music_pitch = ((u64)0x100000000) / *(((u16*)GAX_ram->unk2C)+1);
+        GAX_ram->music_pitch = ((u64)0x100000000) / *(((u16*)GAX_ram->memory_size)+1);
     }
 }
 
