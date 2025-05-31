@@ -85,7 +85,23 @@ void GAX2_new(GAXParams* params) {
 
 }
 
-void GAX2_new_fx(GAXFXParams* fxparams) {}
+// void GAX2_new_fx
+// https://decomp.me/scratch/ffZpU - beanieaxolotl
+// accuracy -> 100%
+
+void GAX2_new_fx(GAXFXParams* fxparams) {
+    
+    if (fxparams == NULL) {
+        GAX_ASSERT("GAX2_NEW_FX", "FXPARAMS ARG IS NULL");
+    } else {
+        fxparams->fxid   = 0xFFFF;
+        fxparams->fxch   = 0xFFFF;
+        fxparams->prio   = -1;
+        fxparams->note   = 0xFFFFFFFF;
+        fxparams->volume = 0xFFFF;
+    }
+    
+}
 
 // void GAX2_calc_mem
 // https://decomp.me/scratch/Iwq4O - EstexNT
@@ -280,6 +296,7 @@ void GAX_restore_fx(s32 fxch, const void* buf) {}
 // accuracy -> 93.97%
 
 void GAX_fx_note(s32 fxch, s32 note) {
+    
     if (note < 3821 && fxch > -1 
         && fxch < GAX_ram->num_fx_channels) {
         if (GAX_ram->fx_channels[fxch].fxch.instrument) {
@@ -287,6 +304,7 @@ void GAX_fx_note(s32 fxch, s32 note) {
             GAX_ram->fx_channels[fxch].nofixedfreq    = TRUE;
         }
     }
+    
 }
 
 // u32 GAX_fx_status
@@ -309,6 +327,7 @@ void GAX_fx_note(s32 fxch, s32 note) {
         current_sound = *(u8 *)(u32*)(fxch-0xC + (int)GAX_ram->fxch);
     }
     return current_sound;
+     
 }
 
 
