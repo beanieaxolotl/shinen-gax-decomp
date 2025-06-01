@@ -286,7 +286,33 @@ void GAX2_calc_mem(GAXParams* params) {
 // main
 void GAX_irq() {}
 void GAX_play() {}
-void GAX_pause() {}
+
+// void GAX_pause
+// https://decomp.me/scratch/zama3 - beanieaxolotl
+// accuracy -> 50.54%
+
+void GAX_pause() {
+    
+    u16 uVar1;
+
+    if (GAX_ram->unk_state) {
+        GAX_ram->unk_state = 0;
+
+        if (GAX_ram->dma2cnt_unk) {
+            uVar1 = 0xFCFF;
+        } else {
+            uVar1 = 0xCCFF;
+        }
+
+        REG_SOUNDCNT_H &= uVar1;
+        REG_DMA1CNT_H   = 0x640;
+        
+        if (GAX_ram->dma2cnt_unk) {
+            REG_DMA2CNT_H = 0x640;
+        }
+    }
+}
+
 void GAX_resume() {}
 void GAX_pause_music() {}
 void GAX_resume_music() {}
