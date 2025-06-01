@@ -128,9 +128,126 @@ u32 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos
     
 }
 
-void GAXTracker_process_frame() {
+// void GAXTracker_process_frame
+// https://decomp.me/scratch/nCWzw - beanieaxolotl
+// accuracy -> 51.50%
 
+void GAXTracker_process_frame(GAX_channel *ch) {
+
+    u32 volenv_volume;
+    u8  vibrato_depth;
+    u16 vibrato_pitch;
+    u16 pitch;
+    int old_modulate_position;
+    int temp1;
+    int temp2;
+    int wave_param_ptr;
+    
+    GAX_instrument* instrument;
+    
+    if (ch->instrument == NULL) {
+        // instrument is empty, don't bother!
+        goto instrument_tick;
+    }
+    
+    // calculate the current location in the volume envelope
+    ch->volenv_volume = GAXTracker_process_envelope(
+        ch, ch->instrument->volume_envelope, &ch->volenv_timer);
+
+    
+    // handle vibrato stuff
+    vibrato_depth = ch->instrument->vibrato_depth;
+    if (vibrato_depth) {
+        // do we have vibrato at all?
+        if (ch->vibrato_wait > 0) {
+            // only apply vibrato if we finish waiting
+            ch->vibtable_index += ch->instrument->vibrato_speed & 0x3F;
+        } else {
+            // wait for our vibrato to finish
+            ch->vibrato_wait--;
+        }
+        vibrato_pitch = GAX_vibtable[ch->vibtable_index] * (ch->instrument->vibrato_depth >> 8);
+    }
+    ch->vibrato_pitch = vibrato_pitch;
+
+
+    // handle modulation stuff
+    
+    if (!ch->enable_modulation || (
+        temp2 = ch->modulate_timer - 1, ch->modulate_timer = temp2,
+        temp2 * 1<<24 > 0)) {
+        goto instrument_tick;
+    }
+
+    old_modulate_position = ch->modulate_position;
+    
+    instrument = ch->instrument;
+    ch->modulate_timer = (instrument->waves[ch->waveslot_idx] * sizeof(GAX_wave_param) + 0x2D);
+
+    if (ch->modulate_direction < 1) {    
+        ch->modulate_position -= -ch->modulate_timer;
+        wave_param_ptr = ch->waveslot_idx * sizeof(GAX_wave_param);
+
+        if (ch->modulate_position < *(instrument->waves + wave_param_ptr + 0x1F)) {
+            ch->modulate_position  += (*instrument->waves + wave_param_ptr + 0x2B)*2;
+            ch->modulate_direction = 1;
+        }      
+        
+    } else { 
+        
+        ch->modulate_position -= ch->modulate_timer;
+        wave_param_ptr = ch->waveslot_idx * sizeof(GAX_wave_param);
+
+        if (*(instrument->waves + wave_param_ptr + 0x23) < *(instrument->waves + wave_param_ptr + 0x27)) {
+            ch->modulate_position  += (*instrument->waves + wave_param_ptr + 0x2B) * -2;
+            ch->modulate_direction = -1;
+        } 
+        
+    }
+    ch->wave_position += (old_modulate_position * -2048) + (ch->modulate_position * 2048);
+
+    
+    instrument_tick:
+        // song-side volume slide handler
+    
+        temp1 = ch->vol_slide_val + ch->instrument_volume;
+        // clamp the volume slide into bounds
+        if (temp1 > 255) {
+            temp1 = 255;
+        }
+        if (temp1 < 0) {
+            temp1 = 0;
+        }    
+        ch->instrument_volume = temp1;
+
+        // perf-list/instrument volume slide handler
+    
+        temp1 = ch->wave_vol_slide_val + ch->wave_volume;
+        // clamp the volume slide into bounds
+        if (temp1 > 255) {
+            temp1 = 255;
+        }
+        if (temp1 < 0) {
+            temp1 = 0;
+        }    
+        ch->wave_volume = temp1;
+
+        pitch              =  *&ch->cur_pitch;
+        pitch              += ch->porta_val;
+        ch->semitone_pitch += ch->wave_porta_val;
+
+        if (ch->toneporta_lerp && (
+            vibrato_pitch = pitch, pitch = ch->toneporta_lerp+pitch,
+            (ch->target_pitch - vibrato_pitch & 1<<31) != (ch->target_pitch - pitch & 1<<31))) {
+            
+            ch->toneporta_lerp = 0;
+            pitch = ch->target_pitch;
+            ch->target_pitch = 0;
+            
+        }
+    
 }
+
 
 void GAXTracker_process_perflist() {
 
