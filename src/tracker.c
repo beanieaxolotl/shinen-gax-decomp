@@ -2,7 +2,7 @@
 
 // void GAXFx_open
 // https://decomp.me/scratch/lR5Xx - beanieaxolotl
-// accuracy -> 94.10%
+// accuracy -> 100%
 
 void GAXFx_open(GAX_channel *fxch) {
     
