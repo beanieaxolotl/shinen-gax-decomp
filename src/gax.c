@@ -313,11 +313,11 @@ void GAX_pause() {
 void GAX_resume() {}
 
 // void GAX_pause_music
-// by beanieaxolotl
-// accuracy -> should be 100%
+// https://decomp.me/scratch/9UV1i - beanieaxolotl
+// accuracy -> 100%
 
 void GAX_pause_music() {
-    GAX_ram->is_music_paused = TRUE;
+    GAX_ram->music_playback_state = PAUSED;
 }
 
 // void GAX_resume_music
@@ -325,7 +325,7 @@ void GAX_pause_music() {
 // accuracy -> 100%
 
 void GAX_resume_music() {
-    GAX_ram->is_music_paused = FALSE;
+    GAX_ram->music_playback_state = PLAYING;
 }
 
  u32 GAX_backup_fx(s32 fxch, void* buffer) {}
