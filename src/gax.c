@@ -311,8 +311,23 @@ void GAX_pause() {
 }
 
 void GAX_resume() {}
-void GAX_pause_music() {}
-void GAX_resume_music() {}
+
+// void GAX_pause_music
+// by beanieaxolotl
+// accuracy -> should be 100%
+
+void GAX_pause_music() {
+    GAX_ram->is_music_paused = TRUE;
+}
+
+// void GAX_resume_music
+// https://decomp.me/scratch/cGYOI - beanieaxolotl
+// accuracy -> 100%
+
+void GAX_resume_music() {
+    GAX_ram->is_music_paused = FALSE;
+}
+
  u32 GAX_backup_fx(s32 fxch, void* buffer) {}
 void GAX_restore_fx(s32 fxch, const void* buf) {}
  u32 GAX_fx(s32 fxid) {}
