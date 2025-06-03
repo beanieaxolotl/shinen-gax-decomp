@@ -289,23 +289,20 @@ void GAX_play() {}
 
 // void GAX_pause
 // https://decomp.me/scratch/zama3 - beanieaxolotl
-// accuracy -> 50.54%
+// accuracy -> 71.79%
 
 void GAX_pause() {
-    
-    u16 uVar1;
 
     if (GAX_ram->unk_state) {
-        GAX_ram->unk_state = 0;
+        GAX_ram->unk_state = FALSE;
 
         if (GAX_ram->dma2cnt_unk) {
-            uVar1 = 0xFCFF;
+            REG_SOUNDCNT_H &= 0xCCFF;
         } else {
-            uVar1 = 0xCCFF;
+            REG_SOUNDCNT_H &= 0xFCFF;
         }
-
-        REG_SOUNDCNT_H &= uVar1;
-        REG_DMA1CNT_H   = 0x640;
+        
+        REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
         
         if (GAX_ram->dma2cnt_unk) {
             REG_DMA2CNT_H = 0x640;
