@@ -293,6 +293,9 @@ void GAX_play() {}
 
 void GAX_pause() {
 
+    // to do: the last magic number in DMA2CNT is
+    // unclear as it what it does
+
     if (GAX_ram->unk_state) {
         GAX_ram->unk_state = FALSE;
 
@@ -342,8 +345,9 @@ void GAX_fx_note(s32 fxch, s32 note) {
     if (note < 3821 && fxch > -1 
         && fxch < GAX_ram->num_fx_channels) {
         if (GAX_ram->fx_channels[fxch].fxch.instrument) {
-            GAX_ram->fx_channels[fxch].fxch.cur_pitch = note;
-            GAX_ram->fx_channels[fxch].nofixedfreq    = TRUE;
+            GAX_ram->fx_channels[fxch].fxch.cur_pitch = note; // update the fx's note
+            GAX_ram->fx_channels[fxch].nofixedfreq    = TRUE; // allow the note to be changed
+            // ^ this overrides the fixed freq. setting in the sfx's perf list btw
         }
     }
     
@@ -361,7 +365,8 @@ void GAX_fx_note(s32 fxch, s32 note) {
         // no sound is being played on this FX channel
         current_sound = 0;
     } else {
-        // to do: this is kind of awkward     
+        // to do: this is kind of awkward and unreadable
+        // ...what does this even do?
         if (GAX_ram->fx_channels[fxch].fxch.priority == 1 << 31) {
             *(u8 *)((s32)GAX_ram->fxch + fxch-0xC) = 0;
         }
