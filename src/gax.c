@@ -297,7 +297,7 @@ void GAX_pause() {
     // unclear as it what it does
 
     if (GAX_ram->unk_state) {
-        GAX_ram->unk_state = FALSE;
+        GAX_ram->unk_state = 0;
 
         if (GAX_ram->dma2cnt_unk) {
             REG_SOUNDCNT_H &= 0xCCFF;
@@ -306,9 +306,8 @@ void GAX_pause() {
         }
         
         REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
-        
         if (GAX_ram->dma2cnt_unk) {
-            REG_DMA2CNT_H = 0x640;
+            REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
         }
     }
 }
@@ -328,7 +327,7 @@ void GAX_pause_music() {
 // accuracy -> 100%
 
 void GAX_resume_music() {
-    GAX_ram->music_playback_state = PLAYING;
+    GAX_ram->music_playback_state = RESUMED;
 }
 
  u32 GAX_backup_fx(s32 fxch, void* buffer) {}
