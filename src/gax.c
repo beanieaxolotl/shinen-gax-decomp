@@ -379,7 +379,28 @@ void GAX_fx_note(s32 fxch, s32 note) {
 
 void GAX_stop_fx(s32 fxch) {}
 void GAX_set_music_volume(s32 ch, u32 vol) {}
-void GAX_set_fx_volume(s32 fxch, u32 vol) {}
+
+// void GAX_set_fx_volume
+// https://decomp.me/scratch/yApBw - beanieaxolotl
+// accuracy -> 91.80%
+
+void GAX_set_fx_volume(s32 fxch, u32 vol) {
+    
+    int i;
+
+    // clamp volume into 8-bit range
+    vol = GAX_CLAMP(vol, 0, 255);
+    
+    if (fxch == -1) {
+        // set all of the fx channel volumes to the user-defined volume
+        for (i = 0; i >= GAX_ram->num_fx_channels; i++) {
+            GAX_ram->fx_channels[i].fxch.mixing_volume = vol;
+        }
+    } else if ((fxch > -2) && fxch < GAX_ram->num_fx_channels) {
+        GAX_ram->fx_channels[fxch].fxch.mixing_volume = vol;
+    }
+}
+
 void GAX_stop() {}
 
 
