@@ -23,9 +23,114 @@ void GAXFx_open(GAX_channel *fxch) {
 
 }
 
+// s8 GAXFx_render
+// https://decomp.me/scratch/qxLpH - beanieaxolotl
+// accuracy -> 80.11%
 
-void GAXFx_render() {
+s8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
+    u8* i;
+    u8  temp;
+    GAX_instrument* instrument;
+    GAXChannelInfo* ch_info;
+    s8 output;
+    
+    if (player->no_instruments) {
+        ch->instrument = NULL;
+    }
+    
+    if (player->skip_pattern) {
+        
+        i = &ch[1].rle_delay;
+        if (((*i == 1) || (*i != 0 && ch[1].waveslot_idx != 0)) && player->no_instruments == FALSE) {
+            // this checks the rle delay value.
+            // we only have to init an FX channel if this is exactly 1.
+            temp = *i; 
+            if (temp == 1) {
+                // turn off the FX channel
+                if (ch->instrument != NULL && ch->instrument->volume_envelope->sustain_point == GAX_NOTSET) {
+                    ch->semitone_pitch = -30000;
+                    ch->wave_porta_val = 0;
+                    ch->priority       = 1 << 31;
+                    ch->instrument     = NULL;
+                }
+                ch->is_note_off = TRUE;
+                
+            } else if (temp > 1) {
+                // init the FX channel
+                ch->cur_pitch   = (temp-2)*32;
+                ch->is_note_off = FALSE;
+            }
+
+            if (ch[1].waveslot_idx > 0) {   
+                
+                instrument = *(GAX_instrument **)((u32)temp * 4 + (int)GAX_ram->fx_data->instrument_data);
+
+                // instrument initialization
+                ch->instrument     = instrument;
+                ch->volenv_timer   = 0;
+                
+                // vibrato handler
+                ch->vibtable_index = 0; // reset vibrato phase
+                ch->vibrato_wait   = instrument->vibrato_wait;
+
+                // perflist handler
+                ch->cur_perfstep   = 0; // always start at perf step #0
+                ch->perflist_timer = 0; // reset perflist timer
+                ch->perfstep_delay = 0; // reset perflist delay value
+
+                // miscellaneous
+                ch->instrument_volume = 255;   // full volume
+                ch->is_note_off       = FALSE; // note on
+                ch->toneporta_lerp    = 0;     // reset tone porta lerp
+                ch->target_pitch      = 0;
+                ch->perfstep_speed    = instrument->perfstep_speed;
+
+                if (!instrument->blank) {
+                    // if the instrument has data saved
+                    ch_info = GAX_ram->params->channel_info;
+                    if ((ch_info != NULL) && (ch->channel_index >= 0)) {
+                        ch_info[ch->channel_index*4].instrument = ch[1].waveslot_idx;
+                    }
+                } else {
+                    // instrument is empty
+                    ch->instrument = NULL;
+                }
+            }
+            
+            if (*i > 1) {
+                ch->cur_pitch += ch[1].unk1;
+            }
+            // to do: check this; this doesn't seem right
+            ch->instrument_volume = ch[1].ignore;
+            ch->vol_slide_val     = 0;
+            ch->porta_val         = 0;
+            ch[1].waveslot_idx, ch[1].unk1 = 0;
+            *i = 0;
+        }
+    }
+    
+    temp = ch->perflist_timer;
+    if ((ch->instrument != NULL) && ch->perflist_timer == 0) {
+        if (ch->perfstep_speed == 0) {
+            goto process_audio;
+        }
+        GAXTracker_process_perflist(ch);
+        temp = ch->perfstep_speed;
+    }
+    ch->perflist_timer = temp-1;
+
+    process_audio:
+        GAXTracker_process_frame(ch);
+        if (ch[1].empty_track) {
+            ch->is_fixed = FALSE;
+        }
+        if (!ch->ignore) {
+            output = GAXTracker_generate_audio(ch, player, GAX_ram->fx_data, 1);
+        }
+    
+    return output;
+    
 }
 
 void GAXTracker_generate_audio() {
