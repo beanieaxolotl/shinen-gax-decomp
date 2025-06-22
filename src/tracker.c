@@ -23,17 +23,16 @@ void GAXFx_open(GAX_channel *fxch) {
 
 }
 
-// s8 GAXFx_render
+// u8 GAXFx_render
 // https://decomp.me/scratch/qxLpH - beanieaxolotl
-// accuracy -> 80.11%
+// accuracy -> 86.73%
 
-s8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
+u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
     u8* i;
     u8  temp;
     GAX_instrument* instrument;
     GAXChannelInfo* ch_info;
-    s8 output;
     
     if (player->no_instruments) {
         ch->instrument = NULL;
@@ -41,14 +40,17 @@ s8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
     
     if (player->skip_pattern) {
         
-        i = &ch[1].rle_delay;
-        if (((*i == 1) || (*i != 0 && ch[1].waveslot_idx != 0)) && player->no_instruments == FALSE) {
+        *i = ch[1].rle_delay;
+        
+        if (((*i == 1) || (*i != 0 && ch[1].waveslot_idx > 0)) && !player->no_instruments) {
+            
             // this checks the rle delay value.
             // we only have to init an FX channel if this is exactly 1.
+            
             temp = *i; 
             if (temp == 1) {
                 // turn off the FX channel
-                if (ch->instrument != NULL && ch->instrument->volume_envelope->sustain_point == GAX_NOTSET) {
+                if (ch->instrument && ch->instrument->volume_envelope->sustain_point == GAX_NOTSET) {
                     ch->semitone_pitch = -30000;
                     ch->wave_porta_val = 0;
                     ch->priority       = 1 << 31;
@@ -125,11 +127,11 @@ s8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
         if (ch[1].empty_track) {
             ch->is_fixed = FALSE;
         }
-        if (!ch->ignore) {
-            output = GAXTracker_generate_audio(ch, player, GAX_ram->fx_data, 1);
+        if (ch->ignore) {
+            return 0;
+        } else {
+            return GAXTracker_generate_audio(ch, player, GAX_ram->fx_data, 1);
         }
-    
-    return output;
     
 }
 
