@@ -378,17 +378,15 @@ void GAX_fx_note(s32 fxch, s32 note) {
 
 // void GAX_stop_fx
 // https://decomp.me/scratch/41EgA - beanieaxolotl
-// accuracy -> 89.90%
+// accuracy -> 100%
 
 void GAX_stop_fx(s32 fxch) {
 
     int i;
     
     if (fxch == -1) {
-        if (GAX_ram->num_fx_channels > 0) {
-            for (i = 0; i < GAX_ram->num_fx_channels; i++) {
-                GAX_ram->fx_channels[i].fxfreq = 1;
-            }
+        for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+            GAX_ram->fx_channels[i].fxfreq = 1;
         }
     } else if (fxch < GAX_ram->num_fx_channels && fxch >= 0) {
         GAX_ram->fx_channels[fxch].fxfreq = 1;
