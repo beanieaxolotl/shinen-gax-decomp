@@ -293,9 +293,6 @@ void GAX_play() {}
 
 void GAX_pause() {
 
-    // to do: the last magic number in DMA2CNT is
-    // unclear as it what it does
-
     if (GAX_ram->unk_state) {
         GAX_ram->unk_state = 0;
 
@@ -312,7 +309,31 @@ void GAX_pause() {
     }
 }
 
-void GAX_resume() {}
+// void GAX_resume
+// https://decomp.me/scratch/sOHcc - beanieaxolotl
+// accuracy -> 79.24%
+
+void GAX_resume() {
+
+    int i;
+    
+    if (!GAX_ram->irq_state) {
+        GAX_ram->irq_state = 1;
+        
+        if (!GAX_ram->dma2cnt_unk) {
+            for (i = 7; i >= 0; i--) {
+                REG_FIFO_A = 0;
+                REG_FIFO_B = 0;
+            }
+            REG_SOUNDCNT_H |= 0x300;
+        } else {
+            for (i = 7; i >= 0; i--) {
+                REG_FIFO_B = 0;
+            }
+            REG_SOUNDCNT_H |= 0x3300;
+        }
+    }
+}
 
 // void GAX_pause_music
 // https://decomp.me/scratch/9UV1i - beanieaxolotl
