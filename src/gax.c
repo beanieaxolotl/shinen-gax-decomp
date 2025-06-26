@@ -283,8 +283,60 @@ void GAX2_calc_mem(GAXParams* params) {
     
 }
 
+
 // main
-void GAX_irq() {}
+
+// void GAX_irq
+// https://decomp.me/scratch/rkmEm - beanieaxolotl
+// accuracy -> 60.31%
+
+void GAX_irq() {
+    
+    if (GAX_ram->signature == 'GAX3' && GAX_ram->irq_state) {
+        
+        // reset DMA and timer registers
+        // we also check the signature for integrity reasons
+        
+        if (GAX_ram->irq_state == 1) {
+            GAX_ram->irq_state = 2; // update IRQ state
+
+            // enable Direct Sound
+            REG_SOUNDCNT_X = SOUND_MASTER_ENABLE; 
+            // reset timer 0
+            REG_TM0CNT_L = 65536 - (GAX_ram->mix_buffer_size | 0xC00000); 
+
+            // handler for different mixing rate
+            if (GAX_ram->dma2cnt_unk) {
+                // reset timer 1
+                REG_TM1CNT_L = 65536 - (GAX_ram->mix_buffer_size_2 | 0xC00000);
+            }
+        }
+        
+        if (GAX_ram->params->debug && !GAX_ram->irq_finished) {
+            GAX_ASSERT("GAX_IRQ",
+            "GAX_PLAY HAS NOT FINISHED BEFORE GAX_IRQ. USE LOWER MIXING RATE OR LESS FX CHANNELS OR PUT GAX_PLAY IN VBLANK IRQ.");
+        }
+        
+        if (*(int*)&GAX_ram->buffer_unk == 1 && GAX_ram->irq_state > 1) {
+            
+            if (GAX_ram->dma2cnt_unk) {
+                REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT;
+            }
+            
+            REG_DMA1SAD   = GAX_ram->dma1sad_unk + ((*(u16*)&GAX_ram->buffer_unk^1) * (u16)GAX_ram->unk24[1]);
+            REG_DMA1CNT_H = DMA_ENABLE | DMA_START_SPECIAL | DMA_32BIT | DMA_REPEAT | DMA_DEST_RELOAD;
+            
+            if (GAX_ram->dma2cnt_unk) {
+                REG_DMA2SAD = GAX_ram->dma2sad + ((GAX_ram->buffer_unk^1) * (u16)GAX_ram->dma2cnt_unk[1]);
+                REG_DMA2CNT_H = DMA_ENABLE | DMA_START_SPECIAL | DMA_32BIT | DMA_REPEAT | DMA_DEST_RELOAD;
+            }
+            
+        }
+        GAX_ram->irq_finished = 0;
+    }
+    
+}
+
 void GAX_play() {}
 
 // void GAX_pause
