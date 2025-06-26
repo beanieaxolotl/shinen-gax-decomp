@@ -363,7 +363,7 @@ void GAX_pause() {
 
 // void GAX_resume
 // https://decomp.me/scratch/sOHcc - beanieaxolotl
-// accuracy -> 83.59%
+// accuracy -> 84.02%
 
 void GAX_resume() {
 
@@ -379,7 +379,8 @@ void GAX_resume() {
                 REG_FIFO_A = 0;
                 REG_FIFO_B = 0;
             }
-            REG_SOUNDCNT_H |= 0x300;
+            REG_SOUNDCNT_H |= SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT 
+                            | SOUND_B_LEFT_OUTPUT | SOUND_B_RIGHT_OUTPUT;
             
         } else {
             
@@ -387,10 +388,11 @@ void GAX_resume() {
                 // resume FIFO for playback
                 REG_FIFO_A = 0;
             }
-            REG_SOUNDCNT_H |= 0x3300;
+            REG_SOUNDCNT_H |= SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT;
         }
     }
 }
+
 
 // void GAX_pause_music
 // https://decomp.me/scratch/9UV1i - beanieaxolotl
