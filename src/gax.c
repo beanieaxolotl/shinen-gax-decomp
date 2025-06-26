@@ -311,7 +311,7 @@ void GAX_pause() {
 
 // void GAX_resume
 // https://decomp.me/scratch/sOHcc - beanieaxolotl
-// accuracy -> 79.24%
+// accuracy -> 83.59%
 
 void GAX_resume() {
 
@@ -320,15 +320,20 @@ void GAX_resume() {
     if (!GAX_ram->irq_state) {
         GAX_ram->irq_state = 1;
         
-        if (!GAX_ram->dma2cnt_unk) {
+        if (GAX_ram->dma2cnt_unk) {
+            
             for (i = 7; i >= 0; i--) {
+                // resume FIFOs used for different mix rates + playback
                 REG_FIFO_A = 0;
                 REG_FIFO_B = 0;
             }
             REG_SOUNDCNT_H |= 0x300;
+            
         } else {
+            
             for (i = 7; i >= 0; i--) {
-                REG_FIFO_B = 0;
+                // resume FIFO for playback
+                REG_FIFO_A = 0;
             }
             REG_SOUNDCNT_H |= 0x3300;
         }
