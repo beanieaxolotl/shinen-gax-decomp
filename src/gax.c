@@ -20,7 +20,7 @@ void GAX2_init_song() {}
 // https://decomp.me/scratch/mBHfv - beanieaxolotl
 // accuracy -> 44.94%
 
-void GAX2_init_soundhw(void) {
+void GAX2_init_soundhw() {
     
     int i;
 
@@ -330,7 +330,44 @@ void GAX_resume_music() {
     GAX_ram->music_playback_state = RESUMED;
 }
 
- u32 GAX_backup_fx(s32 fxch, void* buffer) {}
+// https://decomp.me/scratch/pXSjo - beanieaxolotl
+// accuracy -> 77.77%
+
+u32 GAX_backup_fx(s32 fxch, void* buf) {
+    
+    int i;
+    int temp;
+    u32 buf_size;
+
+    if (fxch == -1) {
+        // size of all of the allocated fx channels
+        buf_size = (GAX_ram->num_fx_channels * sizeof(GAX_FX_channel));
+    } else {
+        // size of one allocated fx channel
+        buf_size = sizeof(GAX_FX_channel);
+    }
+
+    // only do this if the buffer is not NULL,
+    // otherwise this just gives you the buffer size
+    
+    if (buf != NULL) {
+        if (fxch == -1) {
+            // backup all fx channels
+            temp = GAX_ram->num_fx_channels;
+            CpuSet(GAX_ram->fx_channels, buf, (temp * 0x14 & 0x1FFFFF) | REG_DISPCNT);
+            for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+                // to do: this is extremely unclear
+                *(u8*)(buf + (i * sizeof(GAX_FX_channel))) = *(u8*)((u32)GAX_ram->fxch + (i-0xC));
+            }
+        } else {
+            CpuSet(GAX_ram->fx_channels+fxch, buf, REG_BG1HOFS);
+            *(u8*)(buf + sizeof(GAX_FX_channel)) = *(u8*)((int)GAX_ram->fxch + (fxch-0xC));
+        }
+    }
+
+    return buf_size;
+}
+
 void GAX_restore_fx(s32 fxch, const void* buf) {}
  u32 GAX_fx(s32 fxid) {}
  u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {}
@@ -418,8 +455,39 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
     }
 }
 
-void GAX_stop() {}
+// void GAX_stop
+// https://decomp.me/scratch/G5819 - beanieaxolotl
+// accuracy -> 57.78%
+
+void GAX_stop() {
+
+    // to do: what does this do?
+    *(u8 *)(*(int *)(GAX_ram->signature + (int)GAX_ram->unk20 * 4 + 0x18) + 0x12) = 0;
+    
+    GAX_ram->irq_state = 0;
+    REG_SOUNDCNT_X     = 0; // turn DirectSound off
+
+    // set dma values
+    REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
+    if (GAX_ram->dma2cnt_unk) {
+        REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
+    }
+    
+    // disable timer 0
+    REG_TM0CNT_L = 0;
+    if (GAX_ram->dma2cnt_unk) {
+        // disable timer 1
+        REG_TM1CNT_L = 0;
+    }
+}
 
 
 // internal, don't use!
- u32 GAX_get_free_mem() {}
+
+// u32 GAX_get_free_mem
+// https://decomp.me/scratch/CRQ9x - beanieaxolotl
+// accuracy -> 100%
+
+u32 GAX_get_free_mem() {
+    return GAX_ram->free_mem;
+}
