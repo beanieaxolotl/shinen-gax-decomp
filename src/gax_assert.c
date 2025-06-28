@@ -1,16 +1,16 @@
 // void GAX_ASSERT_PRINT
 // https://decomp.me/scratch/nTYY5 - beanieaxolotl
-// accuracy -> 79.14%
+// accuracy -> 89.25%
 
 void GAX_ASSERT_PRINT(int x, int y, const char* string) {
 
     u16  *vram_offset;
     char letter;
-    u16  mapped_letter;
-    u32  offset;
+    char mapped_letter;
+    int  offset;
     int  i;
     
-    vram_offset = (u16*)(VRAM + (x*2) + (y*64));
+    vram_offset = (u16*)(VRAM + x*2 + y*64);
     letter      = string[i];
 
     while (TRUE) {
@@ -19,7 +19,7 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
             break;
         }
         i = 0;
-        offset        = ((*vram_offset & 63)>>1);
+        offset        = (*vram_offset & 63)>>1;
         mapped_letter = string[i];
         
         if (offset < 32) {
@@ -45,6 +45,7 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
         }
 
         map_letter:
+        
             if (mapped_letter == '_') {
                 mapped_letter = 0x5D;
             }
@@ -62,21 +63,24 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
             if (mapped_letter == ' ') {
                 // space
                 mapped_letter = 0;
-            } else {
-                // lowercase to uppercase handler
-                if (mapped_letter < 'A') {
-                    mapped_letter -= 0x2F;
-                    goto process_text;
-                } else if (mapped_letter < 'a') {
-                    mapped_letter -= 0x56;
-                } else {
-                    mapped_letter -= 0x36;
-                }
-            }
+                
+            } else if (mapped_letter < 'A') {
+                mapped_letter -= 0x2F;
+                
+            } else if (mapped_letter < 'a') {
+                // convert lowercase to uppercase
+                mapped_letter -= 0x56;
+                
+            } else if (mapped_letter > '@') {
+                // in the GAX font, letters are stored directly after the numbers
+                mapped_letter -= 0x36;
+            }     
+            goto process_text;
 
         process_text:
             *vram_offset = mapped_letter;
             vram_offset++;
+            letter = string[0];
             string++;
             
     }
