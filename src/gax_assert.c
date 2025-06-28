@@ -1,36 +1,35 @@
 // void GAX_ASSERT_PRINT
 // https://decomp.me/scratch/nTYY5 - beanieaxolotl
-// accuracy -> 63.68%
+// accuracy -> 79.14%
 
 void GAX_ASSERT_PRINT(int x, int y, const char* string) {
 
-    u16 *vram_offset = (u16*)VRAM;
-    u8  letter;
-    u16 mapped_letter;
-    u32 offset;
-    int i;
+    u16  *vram_offset;
+    char letter;
+    u16  mapped_letter;
+    u32  offset;
+    int  i;
     
-    vram_offset = (u16*)(VRAM + (x*2 + y*64));
-    letter      = *string;
+    vram_offset = (u16*)(VRAM + (x*2) + (y*64));
+    letter      = string[i];
 
     while (TRUE) {
         
-        if (letter == 0) {
-            // stop processing if we
-            // encounter zero-pad
-            return;
+        if (letter == 0) { // end of null-terminated string
+            break;
         }
         i = 0;
-        offset        = ((*vram_offset & 0x3f)>>1);
+        offset        = ((*vram_offset & 63)>>1);
         mapped_letter = string[i];
         
         if (offset < 32) {
             
             while (TRUE) {
                 
-                if (letter == 0x00 || letter == ' ' || letter == '\n') {
+                if (letter == 0 || letter == ' ' || letter == '\n') {
                     goto map_letter;
-                } else if (offset > 29) {
+                }
+                if (offset > 29) {
                     // our text wound up off-screen!
                     break;
                 }
@@ -41,44 +40,43 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
                 }
                 letter = string[i];
             }
-            vram_offset = (u16*)((u32)offset & 0xffffffc0) + 0x40;
+            vram_offset = (u16*)(((u32)vram_offset & -64) + 64);
             
         }
 
         map_letter:
-            if (letter == '_') {
-                letter = 0x5D;
+            if (mapped_letter == '_') {
+                mapped_letter = 0x5D;
             }
-            if (letter == ':') {
-                letter = 0x5C;
+            if (mapped_letter == ':') {
+                mapped_letter = 0x5C;
             }
-            if (letter == '.') {
-                letter = 0x5B;
+            if (mapped_letter == '.') {
+                mapped_letter = 0x5B;
             }     
-            if (letter == '\n') {
+            if (mapped_letter == '\n') {
                 // new line
-                vram_offset = (u16*)((u32)offset & ~0x3F) + 0x3F;
+                vram_offset = (u16*)(((u32)vram_offset & -64) + 63);
             }          
         
-            if (letter == ' ') {
+            if (mapped_letter == ' ') {
                 // space
-                letter = 0;
+                mapped_letter = 0;
             } else {
                 // lowercase to uppercase handler
-                if (letter < 'A') {
-                    letter -= 0x2F;
+                if (mapped_letter < 'A') {
+                    mapped_letter -= 0x2F;
                     goto process_text;
-                } else if (letter < 'a') {
-                    letter -= 0x36;
+                } else if (mapped_letter < 'a') {
+                    mapped_letter -= 0x56;
                 } else {
-                    letter -= 0x56;
+                    mapped_letter -= 0x36;
                 }
             }
 
         process_text:
             *vram_offset = mapped_letter;
             vram_offset++;
-            //letter = ((u8*)string)[1];
             string++;
             
     }
