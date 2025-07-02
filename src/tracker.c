@@ -25,14 +25,14 @@ void GAXFx_open(GAX_channel *fxch) {
 
 // u8 GAXFx_render
 // https://decomp.me/scratch/qxLpH - beanieaxolotl
-// accuracy -> 86.73%
+// accuracy -> 91.76%
 
 u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
-    u8* i;
-    u8  temp;
+    u8 temp;
     GAX_instrument* instrument;
     GAXChannelInfo* ch_info;
+
     
     if (player->no_instruments) {
         ch->instrument = NULL;
@@ -40,14 +40,13 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
     
     if (player->skip_pattern) {
         
-        *i = ch[1].rle_delay;
-        
-        if (((*i == 1) || (*i != 0 && ch[1].waveslot_idx > 0)) && !player->no_instruments) {
+        if ((ch[1].rle_delay == 1 || (ch[1].rle_delay 
+          && ch[1].waveslot_idx > 0)) && !player->no_instruments) {
             
             // this checks the rle delay value.
             // we only have to init an FX channel if this is exactly 1.
             
-            temp = *i; 
+            temp = ch[1].rle_delay; 
             if (temp == 1) {
                 // turn off the FX channel
                 if (ch->instrument && ch->instrument->volume_envelope->sustain_point == GAX_NOTSET) {
@@ -58,9 +57,9 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
                 }
                 ch->is_note_off = TRUE;
                 
-            } else if (temp > 1) {
+            } else if (ch[1].rle_delay > 1) {
                 // init the FX channel
-                ch->cur_pitch   = (temp-2)*32;
+                ch->cur_pitch   = (ch[1].rle_delay-2)*32;
                 ch->is_note_off = FALSE;
             }
 
@@ -70,7 +69,7 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
                 // instrument initialization
                 ch->instrument     = instrument;
-                ch->volenv_timer   = 0;
+                ch->volenv_timer   = 0; // reset volume envelope timer
                 
                 // vibrato handler
                 ch->vibtable_index = 0; // reset vibrato phase
@@ -100,7 +99,7 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
                 }
             }
             
-            if (*i > 1) {
+            if (ch[1].rle_delay > 1) {
                 ch->cur_pitch += ch[1].unk1;
             }
             // to do: check this; this doesn't seem right
@@ -108,19 +107,18 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
             ch->vol_slide_val     = 0;
             ch->porta_val         = 0;
             ch[1].waveslot_idx, ch[1].unk1 = 0;
-            *i = 0;
+            ch[1].rle_delay = 0;
         }
     }
     
     temp = ch->perflist_timer;
-    if ((ch->instrument != NULL) && ch->perflist_timer == 0) {
+    if (ch->instrument && ch->perflist_timer == 0) {
         if (ch->perfstep_speed == 0) {
             goto process_audio;
         }
         GAXTracker_process_perflist(ch);
-        temp = ch->perfstep_speed;
+        ch->perflist_timer = ch->perfstep_speed-1;
     }
-    ch->perflist_timer = temp-1;
 
     process_audio:
         GAXTracker_process_frame(ch);
@@ -134,6 +132,7 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
         }
     
 }
+
 
 void GAXTracker_generate_audio() {
 
