@@ -98,11 +98,11 @@ void GAX2_new_fx(GAXFXParams* fxparams) {
     if (fxparams == NULL) {
         GAX_ASSERT("GAX2_NEW_FX", "FXPARAMS ARG IS NULL");
     } else {
-        fxparams->fxid   = 0xFFFF;
-        fxparams->fxch   = 0xFFFF;
+        fxparams->fxid   = -1;
+        fxparams->fxch   = -1;
         fxparams->prio   = -1;
-        fxparams->note   = 0xFFFFFFFF;
-        fxparams->volume = 0xFFFF;
+        fxparams->note   = -1;
+        fxparams->volume = -1;
     }
     
 }
