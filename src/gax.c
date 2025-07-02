@@ -473,7 +473,76 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
 }
 
  u32 GAX_fx(s32 fxid) {}
- u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {}
+
+// u32 GAX_fx_ex
+// https://decomp.me/scratch/fB1g4 - beanieaxolotl
+// accuracy -> 61.72%
+
+ u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {
+    
+    int priority;
+    int calc_fxch;
+    int i;
+    
+    int freq;
+    u8  processed_note;
+    int temp_prio;
+    
+    calc_fxch = -1;
+    if (fxch == -1) {
+        if (GAX_ram->num_fx_channels) {
+            priority = prio;
+            for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+                // find the lowest priority
+                temp_prio = (GAX_ram->fx_channels->fxch).priority;
+                if (priority > temp_prio) {
+                    priority  = temp_prio;
+                    calc_fxch = i;
+                }
+            }
+        }
+    } else {
+        calc_fxch = fxch;
+        if (GAX_ram->num_fx_channels < fxch) {
+            calc_fxch = -1;
+        }
+        if (calc_fxch == -1) {
+            return -1;
+        } else if (prio < GAX_ram->fx_channels[calc_fxch].fxch.priority) {
+            calc_fxch = -1;
+        }
+    }
+
+    if (calc_fxch != -1) {
+        
+        if (note == -1) {
+            freq = 8; // use the default frequency
+        } else {
+            // convert the note value into a frequency one
+            freq = (note>>5)+2;
+        }
+        // apply frequency
+        GAX_ram->fx_channels[calc_fxch].fxfreq = freq;
+
+        if (note == -1) {
+            processed_note = 0;
+        } else {
+            processed_note = note & 31;
+        }
+
+        GAX_ram->fx_channels[calc_fxch].nofixedfreq   = (-~note >> 24 | ~note >> 24) >> 7;
+        GAX_ram->fx_channels[calc_fxch].fxnote        = processed_note;
+        GAX_ram->fx_channels[calc_fxch].fxid          = fxid;
+        GAX_ram->fx_channels[calc_fxch].fxch.priority = prio;
+        GAX_ram->fx_channels[calc_fxch].fxvol         = 255;
+        // save the FX index for later
+        GAX_ram->fx_indexes[calc_fxch] = fxid;
+        
+    }
+
+    return calc_fxch;
+    
+}
 
 // void GAX_fx_note
 // https://decomp.me/scratch/AEzPr - beanieaxolotl
