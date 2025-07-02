@@ -303,12 +303,12 @@ void GAX_irq() {
             // enable Direct Sound
             REG_SOUNDCNT_X = SOUND_MASTER_ENABLE; 
             // reset timer 0
-            REG_TM0CNT_L = 65536 - (GAX_ram->mix_buffer_size | 0xC00000); 
+            REG_TM0CNT_L = 65536 - (GAX_ram->mixbuffer1_size | 0xC00000); 
 
             // handler for different mixing rate
             if (GAX_ram->dma2cnt_unk) {
                 // reset timer 1
-                REG_TM1CNT_L = 65536 - (GAX_ram->mix_buffer_size_2 | 0xC00000);
+                REG_TM1CNT_L = 65536 - (GAX_ram->mixbuffer2_size | 0xC00000);
             }
         }
         
@@ -411,7 +411,7 @@ void GAX_resume_music() {
 }
 
 // https://decomp.me/scratch/pXSjo - beanieaxolotl
-// accuracy -> 77.77%
+// accuracy -> 78.21%
 
 u32 GAX_backup_fx(s32 fxch, void* buf) {
     
@@ -434,21 +434,44 @@ u32 GAX_backup_fx(s32 fxch, void* buf) {
         if (fxch == -1) {
             // backup all fx channels
             temp = GAX_ram->num_fx_channels;
-            CpuSet(GAX_ram->fx_channels, buf, (temp * 0x14 & 0x1FFFFF) | REG_DISPCNT);
+            CpuSet(GAX_ram->fx_channels, buf, temp * 0x14 & 0x1FFFFF | REG_DISPCNT);
             for (i = 0; i < GAX_ram->num_fx_channels; i++) {
-                // to do: this is extremely unclear
-                *(u8*)(buf + (i * sizeof(GAX_FX_channel))) = *(u8*)((u32)GAX_ram->fxch + (i-0xC));
+                *(u8*)(buf + (i * sizeof(GAX_FX_channel))) = GAX_ram->fx_indexes[i];
             }
         } else {
             CpuSet(GAX_ram->fx_channels+fxch, buf, REG_BG1HOFS);
-            *(u8*)(buf + sizeof(GAX_FX_channel)) = *(u8*)((int)GAX_ram->fxch + (fxch-0xC));
+            *(u8*)(buf + sizeof(GAX_FX_channel)) = GAX_ram->fx_indexes[fxch];
         }
     }
 
     return buf_size;
 }
 
-void GAX_restore_fx(s32 fxch, const void* buf) {}
+// void GAX_restore_fx
+// https://decomp.me/scratch/MeqSk - beanieaxolotl
+// accuracy -> 86.16%
+
+void GAX_restore_fx(s32 fxch, const void* buf) {
+
+    u32 i;
+    
+    if (buf == NULL) {
+        GAX_ASSERT("GAX_RESTORE_FX", "BUF ARG IS NULL");
+    }
+    
+    if (fxch == -1) {
+        // restore the backed-up FX channels
+        CpuSet(buf, GAX_ram->fx_channels, GAX_ram->num_fx_channels * 0x14 & 0x1FFFFF | REG_DISPCNT);
+        for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+            GAX_ram->fx_indexes[i] = *(u8*)(buf + (i*sizeof(GAX_FX_channel)));
+        } 
+    } else {
+        CpuSet(buf, GAX_ram->fx_channels+fxch, REG_BG1HOFS);
+        GAX_ram->fx_indexes[fxch] = *(u8*)(buf + sizeof(GAX_FX_channel));
+    }
+    
+}
+
  u32 GAX_fx(s32 fxid) {}
  u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {}
 
@@ -471,26 +494,24 @@ void GAX_fx_note(s32 fxch, s32 note) {
 
 // u32 GAX_fx_status
 // https://decomp.me/scratch/9rpus - beanieaxolotl
-// accuracy -> 96.14%
+// accuracy -> 100%
 
  u32 GAX_fx_status(s32 fxch) {
 
-    u32 current_sound;
+    u32 fxid;
     
     if (fxch < 0 || fxch >= GAX_ram->num_fx_channels) {
         // no sound is being played on this FX channel
-        current_sound = 0;
+        fxid = 0;
     } else {
-        // to do: this is kind of awkward and unreadable
-        // ...what does this even do?
         if (GAX_ram->fx_channels[fxch].fxch.priority == 1 << 31) {
-            *(u8 *)((s32)GAX_ram->fxch + fxch-0xC) = 0;
+            // free the fx index
+            GAX_ram->fx_indexes[fxch] = 0;
         }
         // sound is being played on this FX channel, get the sound ID
-        current_sound = *(u8 *)(u32*)(fxch-0xC + (int)GAX_ram->fxch);
+        fxid = GAX_ram->fx_indexes[fxch];
     }
-    return current_sound;
-     
+    return fxid;
 }
 
 // void GAX_stop_fx
@@ -537,15 +558,15 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
 
 // void GAX_stop
 // https://decomp.me/scratch/G5819 - beanieaxolotl
-// accuracy -> 57.78%
+// accuracy -> 61.48%
 
-void GAX_stop() {
+void GAX_stop(void) {
 
     // to do: what does this do?
-    *(u8 *)(*(int *)(GAX_ram->signature + (int)GAX_ram->unk20 * 4 + 0x18) + 0x12) = 0;
+    *(GAX_ram->fx_indexes + ((int)GAX_ram->unk20 * 4 - 112 + 18)) = 0;
     
     GAX_ram->irq_state = 0;
-    REG_SOUNDCNT_X     = 0; // turn DirectSound off
+    REG_SOUNDCNT_X     = 0; // turn Direct Sound off
 
     // set dma values
     REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
