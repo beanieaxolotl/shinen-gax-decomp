@@ -1,7 +1,7 @@
 #include "gax.h"
 
-
-void GAXTracker_generate_audio() {
+// to do
+u32 GAXTracker_generate_audio(GAX_channel* ch, GAX_player* player, GAXSongData* song_data, u32 unk10) {
 
 }
 
@@ -401,21 +401,22 @@ void GAXTracker_process_step(GAX_channel *ch) {
 }
 
 // u8 GAXTracker_render
-// https://decomp.me/scratch/OGTg1 - AArt1256
-// accuracy -> 87.28%
+// https://decomp.me/scratch/s9hwz - AArt1256, beanieaxolotl
+// accuracy -> 90.22%
 
 u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
-    if (replayer->no_instruments) {
+    
+    if (replayer->unknown_delay) {
         ch->instrument = NULL;
     }
     
-    if (replayer->skip_pattern) {
+    if (replayer->suspend_playback) {
         if (((s16)ch->delay_frames) != 0) {
             if ((--ch->delay_frames)==0) {
                 GAXTracker_process_step(ch);
             }
         } 
-        if ((replayer->stop_on_song_end || replayer->is_song_end) && replayer->unk14) {
+        if ((*(u16*)replayer->speed_buf != 0) && replayer->step_finished) {
             GAXTracker_process_step(ch);
         }
     }
@@ -433,10 +434,11 @@ u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
     process_audio:
         GAXTracker_process_frame(ch);
         if (ch->ignore) {
-            return GAXTracker_generate_audio(ch, replayer, replayer->unk0, 0);
+            return GAXTracker_generate_audio(ch, replayer, replayer->song, 0);
         }
-        return 0;
+    return 0;
 }
+
 
 
 // void GAXFx_open
@@ -464,7 +466,7 @@ void GAXFx_open(GAX_channel *fxch) {
 
 // u8 GAXFx_render
 // https://decomp.me/scratch/qxLpH - beanieaxolotl
-// accuracy -> 91.76%
+// accuracy -> 90.65%
 
 u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
@@ -473,14 +475,14 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
     GAXChannelInfo* ch_info;
 
     
-    if (player->no_instruments) {
+    if (player->unknown_delay) {
         ch->instrument = NULL;
     }
     
-    if (player->skip_pattern) {
+    if (!player->suspend_playback) {
         
         if ((ch[1].rle_delay == 1 || (ch[1].rle_delay 
-          && ch[1].waveslot_idx > 0)) && !player->no_instruments) {
+          && ch[1].waveslot_idx > 0)) && !player->unknown_delay) {
             
             // this checks the rle delay value.
             // we only have to init an FX channel if this is exactly 1.
