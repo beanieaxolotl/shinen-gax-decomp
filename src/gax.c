@@ -345,8 +345,8 @@ void GAX_play() {}
 
 void GAX_pause() {
 
-    if (GAX_ram->unk_state) {
-        GAX_ram->unk_state = 0;
+    if (GAX_ram->irq_state) {
+        GAX_ram->irq_state = 0;
 
         if (GAX_ram->dma2cnt_unk) {
             REG_SOUNDCNT_H &= 0xCCFF;
@@ -399,7 +399,7 @@ void GAX_resume() {
 // accuracy -> 100%
 
 void GAX_pause_music() {
-    GAX_ram->music_playback_state = PAUSED;
+    GAX_ram->playback_state = PAUSED;
 }
 
 // void GAX_resume_music
@@ -407,7 +407,7 @@ void GAX_pause_music() {
 // accuracy -> 100%
 
 void GAX_resume_music() {
-    GAX_ram->music_playback_state = RESUMED;
+    GAX_ram->playback_state = RESUMED;
 }
 
 // https://decomp.me/scratch/pXSjo - beanieaxolotl
@@ -472,7 +472,7 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
     
 }
 
- u32 GAX_fx(s32 fxid) {}
+ u32 GAX_fx(u32 fxid) {}
 
 // u32 GAX_fx_ex
 // https://decomp.me/scratch/fB1g4 - beanieaxolotl
