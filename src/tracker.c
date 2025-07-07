@@ -102,13 +102,12 @@ u8 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos)
 
 // void GAXTracker_process_frame
 // https://decomp.me/scratch/nCWzw - beanieaxolotl
-// accuracy -> 51.50%
+// accuracy -> 71.36%
 
 void GAXTracker_process_frame(GAX_channel *ch) {
 
     u32 volenv_volume;
-    u8  vibrato_depth;
-    u16 vibrato_pitch;
+    int vibrato_pitch;
     u16 pitch;
     int old_modulate_position;
     int newvol;
@@ -128,17 +127,16 @@ void GAXTracker_process_frame(GAX_channel *ch) {
 
     
     // handle vibrato stuff
-    vibrato_depth = ch->instrument->vibrato_depth;
-    if (vibrato_depth > 0) {
+    if (ch->instrument->vibrato_depth > 0) {
         // do we have vibrato at all?
         if (ch->vibrato_wait > 0) {
             // only apply vibrato if we finish waiting
-            ch->vibtable_index += ch->instrument->vibrato_speed & 0x3F;
+            ch->vibtable_index += ch->instrument->vibrato_speed & sizeof(GAX_vibtable)-1;
         } else {
             // wait for our vibrato to finish
             ch->vibrato_wait--;
         }
-        vibrato_pitch = GAX_vibtable[ch->vibtable_index] * (ch->instrument->vibrato_depth >> 8);
+        vibrato_pitch = GAX_vibtable[ch->vibtable_index] * ch->instrument->vibrato_depth;
     }
     ch->vibrato_pitch = vibrato_pitch;
 
@@ -154,21 +152,20 @@ void GAXTracker_process_frame(GAX_channel *ch) {
     old_modulate_position = ch->modulate_position;
     instrument = ch->instrument;
 
-    // to do: replace magic numbers to proper fields
-    ch->modulate_timer = (instrument->waves[ch->waveslot_idx] * sizeof(GAX_wave_param) + 0x2D);
+    ch->modulate_timer = instrument->wave_param[ch->waveslot_idx].mod_speed;
 
-    if (ch->modulate_direction < 1) {    
-        ch->modulate_position -= -ch->modulate_timer;
-        wave_param_ptr = ch->waveslot_idx * sizeof(GAX_wave_param);
-        if (ch->modulate_position < *(instrument->waves + wave_param_ptr + 0x1F)) {
-            ch->modulate_position  += (*instrument->waves + wave_param_ptr + 0x2B)*2;
+    if (ch->modulate_direction < 1) {
+        // forwards modulation
+        ch->modulate_position += instrument->wave_param[ch->waveslot_idx].mod_step;
+        if (ch->modulate_position < instrument->wave_param[ch->waveslot_idx].min) {
+            ch->modulate_position  += instrument->wave_param[ch->waveslot_idx].mod_step*2;
             ch->modulate_direction = 1;
         }         
     } else {
-        ch->modulate_position -= ch->modulate_timer;
-        wave_param_ptr = ch->waveslot_idx * sizeof(GAX_wave_param);
-        if (*(instrument->waves + wave_param_ptr + 0x23) < *(instrument->waves + wave_param_ptr + 0x27)) {
-            ch->modulate_position  += (*instrument->waves + wave_param_ptr + 0x2B) * -2;
+        // backwards modulation
+        ch->modulate_position -= instrument->wave_param[ch->waveslot_idx].mod_step;
+        if (instrument->wave_param[ch->waveslot_idx].max < instrument->wave_param[ch->waveslot_idx].mod_size) {
+            ch->modulate_position  += instrument->wave_param[ch->waveslot_idx].mod_step*-2;
             ch->modulate_direction = -1;
         } 
     }
@@ -203,8 +200,8 @@ void GAXTracker_process_frame(GAX_channel *ch) {
             ch->target_pitch = 0;
             
         }
-
 }
+
 
 void GAXTracker_process_perflist() {}
 
