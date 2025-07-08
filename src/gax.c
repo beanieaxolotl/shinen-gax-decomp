@@ -550,11 +550,11 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
 
 // void GAX_fx_note
 // https://decomp.me/scratch/AEzPr - beanieaxolotl
-// accuracy -> 93.97%
+// accuracy -> 100%
 
 void GAX_fx_note(s32 fxch, s32 note) {
     
-    if (note < 3821 && fxch > -1 
+    if ((u32)note < 3821 && fxch > -1 
         && fxch < GAX_ram->num_fx_channels) {
         if (GAX_ram->fx_channels[fxch].fxch.instrument) {
             GAX_ram->fx_channels[fxch].fxch.cur_pitch = note; // update the fx's note
@@ -637,7 +637,7 @@ void GAX_stop(void) {
 
     // to do: what does this do?
     *(GAX_ram->fx_indexes + (int)GAX_ram->unk20 * 4) = 0;
-        
+
     GAX_ram->irq_state = 0;
     REG_SOUNDCNT_X     = 0; // turn Direct Sound off
 
