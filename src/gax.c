@@ -449,8 +449,8 @@ u32 GAX_backup_fx(s32 fxch, void* buf) {
 }
 
 // void GAX_restore_fx
-// https://decomp.me/scratch/MeqSk - beanieaxolotl
-// accuracy -> 86.16%
+// https://decomp.me/scratch/6mymt - beanieaxolotl, christianttt
+// accuracy -> 100%
 
 void GAX_restore_fx(s32 fxch, const void* buf) {
 
@@ -461,16 +461,30 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
     }
     
     if (fxch == -1) {
-        // restore the backed-up FX channels
-        CpuSet(buf, GAX_ram->fx_channels, GAX_ram->num_fx_channels * 0x14 & 0x1FFFFF | REG_DISPCNT);
+        
+        u32 num_fx;
+        const u8* id_buf;
+        
+        num_fx = GAX_ram->num_fx_channels;
+        id_buf = (const u8*)buf + (num_fx * 80);
+        
+        CpuSet((void*)buf,
+               GAX_ram->fx_channels,
+               (DMA_SRC_INC | DMA_32BIT_BUS | ((num_fx * 20) & 0x1FFFFF)));
+        
         for (i = 0; i < GAX_ram->num_fx_channels; i++) {
-            GAX_ram->fx_indexes[i] = *(u8*)(buf + (i*sizeof(GAX_FX_channel)));
+            GAX_ram->fx_indexes[i] = id_buf[i];
         } 
+        
     } else {
-        CpuSet(buf, GAX_ram->fx_channels+fxch, REG_BG1HOFS);
-        GAX_ram->fx_indexes[fxch] = *(u8*)(buf + sizeof(GAX_FX_channel));
+        
+        void* dest;
+        
+        dest = (u8*)GAX_ram->fx_channels + (fxch * 80);
+        CpuSet((void*)buf, dest, 0x04000014);
+        GAX_ram->fx_indexes[fxch] = *((const u8*)buf + 80);
+        
     }
-    
 }
 
  u32 GAX_fx(u32 fxid) {}
