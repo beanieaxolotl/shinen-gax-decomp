@@ -1,7 +1,7 @@
 #include "gax.h"
 
 // to do
-u32 GAXTracker_generate_audio(GAX_channel* ch, GAX_player* player, GAXSongData* song_data, u32 unk10) {
+u8 GAXTracker_generate_audio(GAX_channel *ch, GAX_player* replayer, u32 unk, u32 flag) {
 
 }
 
@@ -209,7 +209,7 @@ void GAXTracker_process_perflist() {}
 // https://decomp.me/scratch/ocx3P - AnnoyedArt1256
 // accuracy -> 63.15%
 
-void GAXTracker_process_step(GAX_channel *ch) {
+void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, u32 flag) {
 
     u16 note;
     u32 instrument_idx;
@@ -398,8 +398,8 @@ void GAXTracker_process_step(GAX_channel *ch) {
 }
 
 // u8 GAXTracker_render
-// https://decomp.me/scratch/s9hwz - AArt1256, beanieaxolotl
-// accuracy -> 90.22%
+// https://decomp.me/scratch/GoWdE - AArt1256, beanieaxolotl, christianttt
+// accuracy -> 100%
 
 u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
     
@@ -408,34 +408,33 @@ u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
     }
     
     if (replayer->suspend_playback) {
-        if (((s16)ch->delay_frames) != 0) {
-            if ((--ch->delay_frames)==0) {
-                GAXTracker_process_step(ch);
+        if ((s16)ch->delay_frames != 0) {
+            if ((--ch->delay_frames) == 0) {
+                GAXTracker_process_step(ch, replayer, 1);
             }
-        } 
-        if ((*(u16*)replayer->speed_buf != 0) && replayer->step_finished) {
-            GAXTracker_process_step(ch);
+        }
+        
+        if (*(u16*)replayer->speed_buf != 0 && replayer->step_finished) {
+            GAXTracker_process_step(ch, replayer, 0);
         }
     }
 
-    if (ch->instrument && ch->perflist_timer == 0) {
-        if (ch->perfstep_speed == 0) { // no perflist?
-            goto process_audio;
+    if (ch->instrument != NULL && ch->perflist_timer == 0) {
+        if (ch->perfstep_speed != 0) {
+            GAXTracker_process_perflist(ch);
+            ch->perflist_timer = ch->perfstep_speed - 1;
         }
-        GAXTracker_process_perflist(ch);
-        ch->perflist_timer = ch->perfstep_speed-1;
     } else {
         ch->perflist_timer--;
     }
 
-    process_audio:
-        GAXTracker_process_frame(ch);
-        if (ch->ignore) {
-            return GAXTracker_generate_audio(ch, replayer, replayer->song, 0);
-        }
-    return 0;
-}
+    GAXTracker_process_frame(ch);
+    
+    return (ch->ignore != 0)
+        ? 0
+        : (u8)GAXTracker_generate_audio(ch, replayer, (u32)replayer->song, 0);
 
+}
 
 
 // void GAXFx_open
