@@ -415,6 +415,7 @@ void GAX_resume_music() {
     GAX_ram->playback_state = RESUMED;
 }
 
+// u32 GAX_backup_fx
 // https://decomp.me/scratch/pXSjo - beanieaxolotl
 // accuracy -> 78.21%
 
