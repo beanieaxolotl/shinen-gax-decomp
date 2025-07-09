@@ -363,37 +363,41 @@ void GAX_pause() {
 }
 
 // void GAX_resume
-// https://decomp.me/scratch/sOHcc - beanieaxolotl
-// accuracy -> 84.02%
+// https://decomp.me/scratch/msHD3 - beanieaxolotl, christianttt
+// accuracy -> 100%
 
 void GAX_resume() {
-
-    int i;
     
     if (!GAX_ram->irq_state) {
         GAX_ram->irq_state = 1;
         
         if (GAX_ram->dma2cnt_unk) {
             
+            vu16* fifo_a = (vu16*)REG_ADDR_FIFO_A;
+            u16 value = 0;
+            vu16* fifo_b = (vu16*)REG_ADDR_FIFO_B;
+            int i;
+
             for (i = 7; i >= 0; i--) {
-                // resume FIFOs used for different mix rates + playback
-                REG_FIFO_A = 0;
-                REG_FIFO_B = 0;
+                *fifo_a = value;
+                *fifo_b = value;
             }
-            REG_SOUNDCNT_H |= SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT 
-                            | SOUND_B_LEFT_OUTPUT | SOUND_B_RIGHT_OUTPUT;
-            
+            REG_SOUNDCNT_H |= (SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT | 
+                               SOUND_B_LEFT_OUTPUT | SOUND_B_RIGHT_OUTPUT);
+
         } else {
             
+            vu16* fifo_a = (vu16*)REG_ADDR_FIFO_A;
+            u16 value = 0;
+            int i;
+
             for (i = 7; i >= 0; i--) {
-                // resume FIFO for playback
-                REG_FIFO_A = 0;
+                *fifo_a = value;
             }
-            REG_SOUNDCNT_H |= SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT;
+            REG_SOUNDCNT_H |= (SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT);
         }
     }
 }
-
 
 // void GAX_pause_music
 // https://decomp.me/scratch/9UV1i - beanieaxolotl
