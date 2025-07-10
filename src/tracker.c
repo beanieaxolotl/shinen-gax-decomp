@@ -207,35 +207,32 @@ void GAXTracker_process_frame(GAX_channel *ch) {
 void GAXTracker_process_perflist() {}
 
 // void GAXTracker_process_step
-// https://decomp.me/scratch/ocx3P - AnnoyedArt1256
-// accuracy -> 63.15%
+// https://decomp.me/scratch/pnSyh - AArt1256, beanieaxolotl, anegoda1995
+// accuracy -> 65.15%
 
-void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, u32 flag) {
+void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 
     u16 note;
     u32 instrument_idx;
     u8  fx_type;
     u8  fx_param;
-    
+
     GAX_instrument*   instrument;
-    GAX_playbackvars* playback_vars;
     GAXChannelInfo*   channel_info;
-    
-    b8  get_next_note; // what
+
     u8* seq_data;
     u8* seq_byte;
-    
+
+    // step data processing
+
     ch->vol_slide_val = 0;
     ch->porta_val     = 0;
     ch->delay_frames  = 0;
 
-    // step data processing
-    
-    if (!get_next_note) {
-        
-        if (playback_vars->unk16) {
-            seq_data = (u8*)(*(s32*)(playback_vars->unk0+12) 
-                + ch->order[playback_vars->unkC].sequence_offset);
+    if (flag == 0) {
+
+        if (replayer->pattern_finished) {
+            seq_data = replayer->song->track_data + ch->order[(s16)replayer->pattern].sequence_offset;
             ch->sequence    = seq_data;
             ch->rle_delay   = 0;
             ch->empty_track = *(b8*)seq_data; // read the first presence byte
@@ -247,54 +244,62 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, u32 flag) {
             return;
         } else if (ch->rle_delay) {
             ch->rle_delay--;
+            return;
         } else {
-            
+
             seq_byte = (u8*)ch->sequence;
-    
+
             // read the step data here
             if (seq_byte[0] == RUN_LENGTH) {
                 // multiple empty steps (RLE compression)
                 ch->rle_delay = seq_byte[1]-1;
                 ch->sequence  = seq_byte+2;
+                return;
             } else {
                 if (seq_byte[0] & 0x80) {
                     if ((seq_byte[0] & EMPTY_STEP) == 0) {
                         ch->sequence = seq_byte+1;
+                        return;
                     } else if ((seq_byte[0] & EMPTY_STEP) < INSTR_ONLY) {
+                        note = seq_byte[0] & EMPTY_STEP;
                         instrument_idx = seq_byte[1];
-                        fx_type, fx_param = 0;
-                        seq_byte += 2;
+                        fx_type = 0;
+                        fx_param = 0;
+                        ch->sequence = seq_byte+2;
                     } else {
                         // effect only
-                        note, instrument_idx = 0;
+                        note = 0;
+                        instrument_idx = 0;
                         fx_type  = seq_byte[1];
                         fx_param = seq_byte[2];
-                        seq_byte += 3;
+                        ch->sequence = seq_byte+3;
                     }
                 }  else {
                     // note + instrument + fx
-                    note           = seq_data[0];
-                    instrument_idx = seq_data[1];
-                    fx_type        = seq_data[2];
-                    fx_param       = seq_data[3];
-                    seq_byte += 4;
+                    note           = seq_byte[0];
+                    instrument_idx = seq_byte[1];
+                    fx_type        = seq_byte[2];
+                    fx_param       = seq_byte[3];
+                    ch->sequence = seq_byte+4;
                 }
-                ch->sequence = seq_byte;
             }
-            
+
             // special handler for note delay
-            if (fx_type == NOTE_DELAY && fx_param >> 4 == 0xD) {
+            if (fx_type == NOTE_DELAY && (fx_param >> 4) == 0xD) {
+                // EDx - delays the current note by X ticks
                 ch->delay_frames    = fx_param & 0xF;
                 ch->next_semitone   = note;
                 ch->next_instrument = instrument_idx;
+                return;
             }
         }
     } else {
         note           = ch->next_semitone;
         instrument_idx = ch->next_instrument;
-        fx_type, fx_param = 0;
+        fx_type = 0;
+        fx_param = 0;
     }
-    
+
     if (fx_type != TONE_PORTA) {
         // note off handler
         if (note == 1) {
@@ -318,20 +323,26 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, u32 flag) {
 
     // instrument data processing
     if (instrument_idx) {
-        
-        instrument = (GAX_instrument*)((instrument_idx*4) + (playback_vars->unk0+16));
-        
+
+        instrument = (GAX_instrument*)(replayer->song->instrument_data + instrument_idx*4);
+
+        // instrument initialization
         ch->instrument     = instrument;
-        ch->volenv_timer   = 0;
-        ch->vibtable_index = 0;
+        ch->volenv_timer   = 0; // reset volume envelope timer
+
+        // vibrato handler
+        ch->vibtable_index = 0; // reset vibrato phase
         ch->vibrato_wait   = instrument->vibrato_wait;
-        ch->cur_perfstep = 0;
-        ch->perflist_timer = 0;
-        ch->perfstep_delay = 0;
-        
-        ch->instrument_volume = 255;
-        ch->is_note_off       = FALSE;
-        ch->toneporta_lerp    = 0;
+
+        // perflist handler
+        ch->cur_perfstep   = 0; // always start at perf step #0
+        ch->perflist_timer = 0; // reset perflist timer
+        ch->perfstep_delay = 0; // reset perflist delay value
+
+        // miscellaneous
+        ch->instrument_volume = 255;   // full volume
+        ch->is_note_off       = FALSE; // note on
+        ch->toneporta_lerp    = 0;     // reset tone porta lerp
         ch->target_pitch      = 0;
         ch->perfstep_speed    = instrument->perfstep_speed;
 
@@ -339,58 +350,71 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, u32 flag) {
             ch->instrument = NULL;
         } else {
             channel_info = GAX_ram->params->channel_info;
-            if ((channel_info != 0) && (ch->channel_index > 0)) {
+            if ((channel_info != 0) && (ch->channel_index >= 0)) {
                 channel_info[ch->channel_index].instrument = instrument_idx;
             }
         }
-        
     }
 
     // fx command processing
     switch(fx_type) {
-        
+
         case PORTA_UP:
+            // 1xx - slides the note up by X units
             ch->porta_val = fx_param;
             break;
-        
+
         case PORTA_DOWN:
+            // 2xx - slides the note down by X units
             ch->porta_val = -fx_param;
             break;
-        
+
         case TONE_PORTA:
+            // 3xx - slides the note to the next one by X units
+            // (the portamento is constantly applied each tick unlike XM)
             if (fx_param) {
                 ch->target_pitch = (note-2)*32;
                 ch->toneporta_lerp = (ch->target_pitch-ch->cur_pitch)/fx_param;
             }
             break;
-        
+
         case MODULATE_SPEED:
-            playback_vars->speed_hi = (fx_param >> 4) | (fx_param << 8);
-            playback_vars->speed_lo = (fx_param >> 4) + 0xff;
+            // 7xy - sets the speed numerator and denominator values independently
+            // this creates a swing effect or emulates a non-integer tempo
+            *(u16*)replayer->speed_buf = (fx_param >> 4) | (fx_param << 8) & 0xF00;
+            replayer->speed_timer      = (fx_param >> 4) + 0xFF;
             break;
-                
+
         case VOLSLIDE_UP:
+            // Axx - slides the volume up by X units
             ch->vol_slide_val = fx_param;
             break;
-        
+
         case VOLSLIDE_DOWN:
+            // Bxx - slides the volume down by X units
             ch->vol_slide_val = -fx_param;
-            break;      
-        
-        case SET_VOLUME:
-            ch->instrument_volume = fx_param;
-            break;     
-        
-        case BREAK_PATTERN:
-            // bug: the current step is not set up correctly
-            // resulting in the dest step being 0
-            playback_vars->break_pattern = TRUE;
-            playback_vars->current_step  = fx_param;
             break;
-        
+
+        case SET_VOLUME:
+            // Cxx - sets the instrument volume
+            ch->instrument_volume = fx_param;
+            break;
+
+        case BREAK_PATTERN:
+
+            // Dxx - breaks/skips the current pattern
+
+            // bug: despite it being set,
+            // the step index does not change
+
+            replayer->skip_pattern = TRUE;
+            replayer->new_step_idx = fx_param;
+            break;
+
         case SET_SPEED:
-            playback_vars->speed_hi, 
-            playback_vars->speed_lo = fx_param;
+            // Fxx - sets the speed value (ticks per step)
+            *replayer->speed_buf = fx_param;
+            replayer->speed_timer = fx_param;
             break;
 
         default:
