@@ -205,7 +205,7 @@ typedef struct GAX_instrument {
     u16 unk1A;
     GAX_perflist* perflist;
 
-    GAX_wave_param[MAX_WAVES] wave_params;
+    GAX_wave_param wave_params[MAX_WAVES];
 
 } GAX_instrument;
 

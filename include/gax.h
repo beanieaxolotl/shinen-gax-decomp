@@ -1,3 +1,5 @@
+#include "gba\gba.h"
+
 /********************************************************************
  *                     GAX Sound Engine                             *
  * use only in compliance with a signed Audio Development Agreement * 
@@ -13,10 +15,13 @@
 extern "C" {
 #endif
 
+
+// made redundant with include/gba/types.h
+
 /*------------------------------------------------------------------*/
 /*                      Redefine Data Size                          */
 /*------------------------------------------------------------------*/
-#ifndef _AGB_TYPES_H
+/*#ifndef _AGB_TYPES_H
 	typedef     unsigned char           u8;
 	typedef     unsigned short int      u16;
 	typedef     unsigned int            u32;
@@ -45,7 +50,8 @@ extern "C" {
 	
 	typedef     vl f32                  vf32;
 	typedef     vl f64                  vf64;
-#endif
+#endif*/
+
 
 #ifndef b8
 	typedef	u8 b8;

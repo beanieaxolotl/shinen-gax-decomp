@@ -1,6 +1,3 @@
-#include "GAX_font.h"
-
-
 #ifndef GAX_ASSERT_H
 #define GAX_ASSERT_H
 

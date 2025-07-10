@@ -1,5 +1,6 @@
 #include "gax.h"
 #include "gax_assert.h"
+#include "gax_internal.h"
 
 // externals
 extern u8 GAXOutput_reverb_asm[];
