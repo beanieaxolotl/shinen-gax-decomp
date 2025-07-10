@@ -1,4 +1,5 @@
 #include "gax.h"
+#include "gax_internal.h"
 
 // to do
 u8 GAXTracker_generate_audio(GAX_channel *ch, GAX_player* replayer, u32 unk, u32 flag) {
