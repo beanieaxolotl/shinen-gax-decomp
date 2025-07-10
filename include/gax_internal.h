@@ -14,8 +14,9 @@
 static const char* GAX_copyright;
 static const u16 GAX_table[];
 static const u8 gax_default_package[];
-static const char GAX_font[];
-static const s8 GAX_vibtable[];
+static const char GAX_font[281];       // to do: data needs to be documented!
+static const s8 GAX_vibtable[64];
+static const u32 GAX_periodtable[384];
 
 
 // enums //
@@ -176,9 +177,9 @@ typedef struct GAX_wave_param {
     s16 tune;      // finetune
     b8  modulation;
     b8  pingpong;
-    u32 wave_init; // waveform offset
-    u32 wave_min;  // loop start
-    u32 wave_max;  // loop end
+    u32 init;      // waveform offset
+    u32 min;       // loop start
+    u32 max;       // loop end
     s32 mod_size;
     u16 mod_step;
     u16 mod_speed;
@@ -336,7 +337,7 @@ struct {
     u32*  unk20;
     u32*  unk24;
     u32*  dma2cnt_unk;
-    u32   unk2C; // u32 *unk2C // this fixes it??!?!
+    u32   memory_size; // u32 *unk2C // this fixes it??!?!
     u32   dma1sad_unk;
     u32   dma2sad;
     u8*   mix_buffer;
