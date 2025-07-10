@@ -262,7 +262,8 @@ typedef struct GAX_channel {
 typedef struct GAX_FX_channel {
 
     GAX_channel fxch;
-    u16         fxvol;
+    u8          fxvol;
+    u8          fxnote;
     b8          nofixedfreq;
     u8          fxfreq;
     u32         fxid;
