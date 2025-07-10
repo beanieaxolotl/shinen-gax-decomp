@@ -2,7 +2,9 @@
 #include "gax_assert.h"
 #include "gax_internal.h"
 
+
 // externals
+
 extern u8 GAXOutput_reverb_asm[];
 extern u8 GAXOutput_reverb_asm_end[];
 extern u8 GAXOutput_filter_lowpass_asm[];
@@ -13,6 +15,67 @@ extern u8 GAXTracker_asm[];
 extern u8 GAXTracker_asm_end[];
 extern u8 GAXTracker_pingpong_asm[];
 extern u8 GAXTracker_pingpong_asm_end[];
+
+// constants
+
+// the copyright string for the sound driver.
+// btw the original code was done by @BartmanAbyss according to this string
+const char* GAX_copyright = "GAX Sound Engine 3.05A (Aug 16 2004) © Shin'en Multimedia. Code: B.Wodok";
+
+// mixing rate / timer reload value table
+const u16 GAX_table[9*2] = {
+
+     5735, 2926,
+    15769, 1064,
+    18158,  924,
+    21025,  798,
+    26760,  627,
+    31537,  532,
+    36316,  462,
+    40138,  418,
+    42049,  399
+
+};
+
+// GAX defaults to this package when a song is not specified
+const u8 gax_default_package[200] = {
+    // to do
+};
+
+// assertion screen font
+const char GAX_font[281] = {
+    // to do: this is a LZ77 compressed font
+};
+
+// vibrato table
+const s8 GAX_vibtable[64] = {
+
+    // 64-entry sine wave table
+
+       0,   12,   24,   37, 
+      48,   60,   70,   80, 
+      90,   98,  106,  112,
+     117,  122,  125,  126,
+     127,  126,  125,  122,
+     117,  112,  106,   98,
+      90,   80,   70,   60,
+      48,   37,   24,   12,
+       0,  -12,  -24,  -37, 
+     -48,  -60,  -70,  -80, 
+     -90,  -98, -106, -112,
+    -117, -122, -125, -126,
+    -127, -126, -125, -122,
+    -117, -112, -106,  -98,
+     -90,  -80,  -70,  -60,
+     -48,  -37,  -24,  -12
+
+};
+
+// frequency period table
+const u32 GAX_periodtable[384] = {
+    // to do
+};
+
 
 
 void GAX2_init_song() {}
