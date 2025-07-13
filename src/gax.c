@@ -81,36 +81,53 @@ const u32 GAX_periodtable[384] = {
 void GAX2_init_song() {}
 
 // void GAX2_init_soundhw
-// https://decomp.me/scratch/mBHfv - beanieaxolotl
-// accuracy -> 47.44%
+// https://decomp.me/scratch/nNgcv - beanieaxolotl, christianttt
+// accuracy -> 98.53%
 
-void GAX2_init_soundhw() {
+void GAX2_init_soundhw(void) {
     
-    int i;
 
-    if (GAX_ram->dma2cnt_unk == NULL) {
-        REG_SOUNDCNT_H = SOUND_A_MIX_FULL | SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT | SOUND_A_TIMER_1;
-        for (i = 7; i >= -1; i--) {
-            REG_FIFO_A = i;
+    int i;
+    vu16 *fifo_b;
+    vu16 *fifo_a;
+    
+    if (GAX_ram->dma2cnt_unk != NULL) {
+        
+        *(vu32 *)REG_ADDR_DMA1CNT = 4;
+        *(vu32 *)REG_ADDR_DMA2CNT = 4;
+        
+        REG_SOUNDCNT_X = 0;
+        REG_SOUNDCNT_H = 0xFB0C;
+
+
+        fifo_a = (vu16 *)REG_ADDR_FIFO_A;
+        fifo_b = (vu16 *)REG_ADDR_FIFO_B;
+        for (i = 7; i >= 0; i--) {
+            *fifo_a = 0;
+            *fifo_b = 0;
         }
         
-    } else {
-        REG_DMA2CNT_L  = 4;
-        REG_SOUNDCNT_H = 0xFB0C;
-        for (i = 7; i >= -1; i--) {
-            REG_FIFO_B = 0;
-        }
-        REG_DMA2DAD = REG_FIFO_B;
+        REG_DMA2DAD = REG_ADDR_FIFO_B;
         REG_DMA2SAD = GAX_ram->dma2sad;
+
+    } else {
+        
+        *(vu32 *)REG_ADDR_DMA1CNT = 4;
+        
+        REG_SOUNDCNT_X = 0;
+        REG_SOUNDCNT_H = 0x0B04;
+        
+
+        fifo_a = (vu16 *)REG_ADDR_FIFO_A;
+        for (i = 7; i >= 0; i--) {
+            *fifo_a = 0;
+        }
     }
-
-    REG_DMA1CNT_L  = 4;
-    REG_FIFO_A     = 0;
-    REG_SOUNDCNT_X = 0;
-    REG_SOUNDBIAS  = 0x42; // 8-bit, 65536+ Hz
-
-    REG_DMA1DAD = REG_FIFO_A;
+    
+    REG_SOUNDBIAS_H = 0x42;
+    REG_DMA1DAD = REG_ADDR_FIFO_A;
     REG_DMA1SAD = GAX_ram->dma1sad_unk;
+
 }
 
 
@@ -480,42 +497,61 @@ void GAX_resume_music() {
 }
 
 // u32 GAX_backup_fx
-// https://decomp.me/scratch/pXSjo - beanieaxolotl
-// accuracy -> 78.21%
+// https://decomp.me/scratch/WUJAg - beanieaxolotl, christianttt
+// accuracy -> 99.35%
 
 u32 GAX_backup_fx(s32 fxch, void* buf) {
-    
-    int i;
-    int temp;
+
+    u32 i;
     u32 buf_size;
-
-    if (fxch == -1) {
-        // size of all of the allocated fx channels
-        buf_size = (GAX_ram->num_fx_channels * sizeof(GAX_FX_channel));
-    } else {
-        // size of one allocated fx channel
-        buf_size = sizeof(GAX_FX_channel);
-    }
-
-    // only do this if the buffer is not NULL,
-    // otherwise this just gives you the buffer size
     
-    if (buf != NULL) {
-        if (fxch == -1) {
-            // backup all fx channels
-            temp = GAX_ram->num_fx_channels;
-            CpuSet(GAX_ram->fx_channels, buf, temp * 0x14 & 0x1FFFFF | REG_DISPCNT);
-            for (i = 0; i < GAX_ram->num_fx_channels; i++) {
-                *(u8*)(buf + (i * sizeof(GAX_FX_channel))) = GAX_ram->fx_indexes[i];
-            }
-        } else {
-            CpuSet(GAX_ram->fx_channels+fxch, buf, REG_BG1HOFS);
-            *(u8*)(buf + sizeof(GAX_FX_channel)) = GAX_ram->fx_indexes[fxch];
-        }
+    if (fxch == -1) {
+        u32 num_fx = GAX_ram->num_fx_channels;
+        buf_size = num_fx * 80;
+    } else {
+        buf_size = 80;
+    }
+    if (fxch == -1) {
+        buf_size += GAX_ram->num_fx_channels;
+    } else {
+        buf_size += 1;
     }
 
+    if (buf == NULL) {
+        return buf_size;
+    }
+    
+    if (fxch == -1) {
+        
+        u32 num_fx;
+        u8* id_buf;
+        
+        num_fx = GAX_ram->num_fx_channels;
+        id_buf = (u8*)buf + (num_fx * 80);
+        
+        CpuSet(GAX_ram->fx_channels,
+               buf,
+               (DMA_SRC_INC | DMA_32BIT_BUS | ((num_fx * 20) & 0x1FFFFF)));
+        
+        for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+            id_buf[i] = GAX_ram->fx_indexes[i];
+        } 
+        
+    } else {
+        
+        void* src;
+
+        src = (u8*)GAX_ram->fx_channels + (fxch * 80);
+        CpuSet(src, buf, REG_ADDR_BG1HOFS);
+        *((u8*)buf + 80) = GAX_ram->fx_indexes[fxch];
+    }
+    
     return buf_size;
+    
+    //Close but will come back to it
+
 }
+
 
 // void GAX_restore_fx
 // https://decomp.me/scratch/6mymt - beanieaxolotl, christianttt
@@ -550,7 +586,7 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
         void* dest;
         
         dest = (u8*)GAX_ram->fx_channels + (fxch * 80);
-        CpuSet((void*)buf, dest, 0x04000014);
+        CpuSet((void*)buf, dest, REG_ADDR_BG1HOFS);
         GAX_ram->fx_indexes[fxch] = *((const u8*)buf + 80);
         
     }
