@@ -83,7 +83,7 @@ void GAX2_init_song() {}
 // https://decomp.me/scratch/nNgcv - beanieaxolotl, christianttt
 // accuracy -> 98.53%
 
-void GAX2_init_soundhw(void) {
+void GAX2_init_soundhw() {
     
 
     int i;
@@ -911,7 +911,7 @@ void GAX_ASSERT(const char* fn, const char* msg) {
     #else
         GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A"__DATE__"\n\nEXCEPTION. PROGRAM HALT.");
     #endif
-        
+
     GAX_ASSERT_PRINT(0,5,"FUNCTION NAME:");
     GAX_ASSERT_PRINT(15,5,fn);
     GAX_ASSERT_PRINT(0,7,msg);
