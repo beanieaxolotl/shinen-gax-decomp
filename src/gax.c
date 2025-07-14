@@ -897,14 +897,6 @@ void GAX_ASSERT(const char* fn, const char* msg) {
     (*(u32*)(VRAM+0x44C8)) = 0x10000;    // colon (top dot)
     (*(u32*)(VRAM+0x44D4)) = 0x10000;    // colon (bottom dot)
     (*(u32*)(VRAM+0x44FC)) = 0x01111110; // underscore
-
-    // the (non-uppercase) date seems to be a preprocessor macro.
-    // the real string may be this:
-    /*
-        "GAX ENGINE V3.05A"__DATE__"\n\nEXCEPTION. PROGRAM HALT."
-    */
-    // but since this is currently matching the version from August of 2004
-    // this is not what we do
     
     #ifdef MATCHING
         GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A Aug 16 2004\n\nEXCEPTION. PROGRAM HALT.");
