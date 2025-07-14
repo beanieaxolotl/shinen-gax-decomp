@@ -18,8 +18,7 @@ extern u8 GAXTracker_pingpong_asm_end[];
 
 // constants
 
-// the copyright string for the sound driver.
-// btw the original code was done by @BartmanAbyss according to this string
+// the copyright string for the sound driver
 const char* GAX_copyright = "GAX Sound Engine 3.05A (Aug 16 2004) \xa9 Shin'en Multimedia. Code: B.Wodok";
 
 // mixing rate / timer reload value table
@@ -907,7 +906,12 @@ void GAX_ASSERT(const char* fn, const char* msg) {
     // but since this is currently matching the version from August of 2004
     // this is not what we do
     
-    GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A Aug 16 2004\n\nEXCEPTION. PROGRAM HALT.");
+    #ifdef MATCHING
+        GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A Aug 16 2004\n\nEXCEPTION. PROGRAM HALT.");
+    #else
+        GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A"__DATE__"\n\nEXCEPTION. PROGRAM HALT.");
+    #endif
+        
     GAX_ASSERT_PRINT(0,5,"FUNCTION NAME:");
     GAX_ASSERT_PRINT(15,5,fn);
     GAX_ASSERT_PRINT(0,7,msg);

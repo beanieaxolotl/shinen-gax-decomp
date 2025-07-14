@@ -1,5 +1,7 @@
 // defines
 
+#define MATCHING   TRUE
+
 #define GAX_NOTSET 0xFF
 #define RESUMED    0
 #define PAUSED     2
