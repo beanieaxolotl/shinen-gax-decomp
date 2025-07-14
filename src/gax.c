@@ -591,51 +591,102 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
     }
 }
 
- u32 GAX_fx(u32 fxid) {}
+// u32 GAX_fx
+// https://decomp.me/scratch/pc18o - beanieaxolotl
+// accuracy -> 79.62%
+
+ u32 GAX_fx(u32 fxid) {
+    
+    GAX_FX_channel*         temp;
+    GAX_tracker_asm_params* tracker_asm;
+    
+    s32 i;
+    int curfxch = 0;
+    int prio1   = 0;
+    int prio2   = 0x7FFFFFFF;
+    
+    if (fxid < 256) {
+        
+        for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+            // get the priority of FX channel i
+            prio1 = GAX_ram->fx_channels[i].fxch.priority;
+            if (prio1 <= prio2) {
+                // find a free FX channel by comparing priorities
+                curfxch = i;
+                prio2   = prio1;
+            }
+        }
+        // initialize the found sound channel
+        GAX_ram->fx_channels[curfxch].fxfreq        = 8;     // minimum frequency?
+        GAX_ram->fx_channels[curfxch].fxnote        = 0;     // 
+        GAX_ram->fx_channels[curfxch].nofixedfreq   = FALSE; // play at a fixed frequency
+        *(u8*)&GAX_ram->fx_channels[curfxch].fxid   = fxid;  // save the called fxid
+        GAX_ram->fx_channels[curfxch].fxch.priority = 0;     // default priority
+        GAX_ram->fx_channels[curfxch].fxvol         = 255;   // full volume
+        GAX_ram->fx_indexes[curfxch]                = fxid;  // store the called fxid
+        
+    
+    } else if (!(GAX_ram->params->flags & GAX_SPEECH) && GAX_ram->params->debug) {
+         // if the user plays a speech SFX without setting
+         // the GAX_SPEECH flag in GAX2_init
+        GAX_ASSERT("GAX_FX",
+        "YOU TRIED TO PLAY A SPEECH FX BUT HAVE NOT USED THE GAX_SPEECH FLAG WITH GAX2_INIT.");
+    
+    } else {
+        // to do: everything here
+        /* tracker_asm = GAX_ram->tracker_asm;
+           *(u32 *)&tracker_asm[6].field_0xea = fxid - 0x100;
+           *(undefined4 *)&tracker_asm[6].field_0xee = 0;
+           *(undefined4 *)&tracker_asm[6].field_0xf2 = 0; */
+    }
+
+    return curfxch;
+    
+}
 
 // u32 GAX_fx_ex
 // https://decomp.me/scratch/fB1g4 - beanieaxolotl
-// accuracy -> 64.34%
+// accuracy -> 70.31%
 
  u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {
     
-    int priority;
-    int calc_fxch;
-    int i;
-    
     int freq;
     u8  processed_note;
-    int temp_prio;
-
-    GAX_FX_channel* temp;
     
-    calc_fxch = -1;
+    int i;
+    int curfxch = -1;
+    int prio1   = 0;
+    int prio2   = 0x7FFFFFFF;
+
     if (fxch == -1) {
-        if (GAX_ram->num_fx_channels) {
-            temp = GAX_ram->fx_channels;
-            priority = prio;
-            for (i = 0; i < GAX_ram->num_fx_channels; i++) {
-                // find the lowest priority
-                temp_prio = (temp->fxch).priority;
-                if (priority >= temp_prio) {
-                    priority  = temp_prio;
-                    calc_fxch = i;
-                }
+        
+        prio2 = prio;
+        for (i = 0; i < GAX_ram->num_fx_channels; i++) {
+            // get the priority of FX channel i
+            prio1 = GAX_ram->fx_channels[i].fxch.priority;
+            if (prio2 <= prio1) {
+                // find a free FX channel by comparing priorities
+                curfxch = i;
+                prio2     = prio1;
             }
         }
+        
     } else {
-        calc_fxch = fxch;
+        
+        curfxch = fxch;
         if (GAX_ram->num_fx_channels < fxch) {
-            calc_fxch = -1;
+            curfxch = -1;
         }
-        if (calc_fxch == -1) {
-            return -1;
-        } else if (prio < GAX_ram->fx_channels[calc_fxch].fxch.priority) {
-            calc_fxch = -1;
+        if (curfxch == -1) {
+            return curfxch;
         }
+        if (prio < GAX_ram->fx_channels[curfxch].fxch.priority) {
+            curfxch = -1;
+        }
+        
     }
 
-    if (calc_fxch != -1) {
+    if (curfxch != -1) {
         
         if (note == -1) {
             freq = 8; // use the default frequency
@@ -644,7 +695,7 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
             freq = (note>>5)+2;
         }
         // apply frequency
-        GAX_ram->fx_channels[calc_fxch].fxfreq = freq;
+        GAX_ram->fx_channels[curfxch].fxfreq = freq;
 
         if (note == -1) {
             processed_note = 0;
@@ -652,17 +703,17 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
             processed_note = note & 31;
         }
 
-        GAX_ram->fx_channels[calc_fxch].nofixedfreq   = (-~note >> 24 | ~note >> 24);
-        GAX_ram->fx_channels[calc_fxch].fxnote        = processed_note;
-        *(u8*)&GAX_ram->fx_channels[calc_fxch].fxid   = fxid;
-        GAX_ram->fx_channels[calc_fxch].fxch.priority = prio;
-        GAX_ram->fx_channels[calc_fxch].fxvol         = 255;
+        GAX_ram->fx_channels[curfxch].nofixedfreq   = (-~note >> 24 | ~note >> 24);
+        GAX_ram->fx_channels[curfxch].fxnote        = processed_note;
+        *(u8*)&GAX_ram->fx_channels[curfxch].fxid   = fxid; // save the called fxid
+        GAX_ram->fx_channels[curfxch].fxch.priority = prio;
+        GAX_ram->fx_channels[curfxch].fxvol         = 255;  // full volume
         // save the FX index for later
-        GAX_ram->fx_indexes[calc_fxch] = fxid;
+        GAX_ram->fx_indexes[curfxch] = fxid;
         
     }
-
-    return calc_fxch;
+    
+    return curfxch;
     
 }
 
