@@ -646,7 +646,7 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
 
 // u32 GAX_fx_ex
 // https://decomp.me/scratch/fB1g4 - beanieaxolotl
-// accuracy -> 70.31%
+// accuracy -> 82.93%
 
  u32 GAX_fx_ex(u32 fxid, s32 fxch, s32 prio, s32 note) {
     
@@ -654,53 +654,58 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
     u8  processed_note;
     
     int i;
-    int curfxch = -1;
-    int prio1   = 0;
-    int prio2   = 0x7FFFFFFF;
+    u32 curfxch = -1;
+    int prio1, prio2;
+    
+    prio2 = prio;
 
     if (fxch == -1) {
         
-        prio2 = prio;
         for (i = 0; i < GAX_ram->num_fx_channels; i++) {
             // get the priority of FX channel i
             prio1 = GAX_ram->fx_channels[i].fxch.priority;
-            if (prio2 <= prio1) {
+            if (prio1 <= prio2) {
                 // find a free FX channel by comparing priorities
                 curfxch = i;
-                prio2     = prio1;
+                prio2   = prio1;
             }
         }
         
     } else {
         
-        curfxch = fxch;
-        if (GAX_ram->num_fx_channels < fxch) {
+        curfxch = fxch; // save the user-defined FX channel
+
+        // return -1 if the FX channel the user had specified
+        // is more than what GAX has
+        if (curfxch >= GAX_ram->num_fx_channels) {
             curfxch = -1;
         }
         if (curfxch == -1) {
-            return curfxch;
+            return -1;
         }
+        
         if (prio < GAX_ram->fx_channels[curfxch].fxch.priority) {
+            // current FX has higher priority than this FX
             curfxch = -1;
         }
         
     }
-
     if (curfxch != -1) {
         
-        if (note == -1) {
-            freq = 8; // use the default frequency
-        } else {
+        if (note != -1) {
             // convert the note value into a frequency one
             freq = (note>>5)+2;
+        } else {
+            freq = 8; // use the default frequency
         }
+        
         // apply frequency
         GAX_ram->fx_channels[curfxch].fxfreq = freq;
 
-        if (note == -1) {
-            processed_note = 0;
-        } else {
+        if (note != -1) {
             processed_note = note & 31;
+        } else {
+            processed_note = 0;
         }
 
         GAX_ram->fx_channels[curfxch].nofixedfreq   = (-~note >> 24 | ~note >> 24);
@@ -952,7 +957,7 @@ void GAX_ASSERT(const char* fn, const char* msg) {
     #ifdef MATCHING
         GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A Aug 16 2004\n\nEXCEPTION. PROGRAM HALT.");
     #else
-        GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A"__DATE__"\n\nEXCEPTION. PROGRAM HALT.");
+        GAX_ASSERT_PRINT(0,0,"GAX ENGINE V3.05A "__DATE__"\n\nEXCEPTION. PROGRAM HALT.");
     #endif
 
     GAX_ASSERT_PRINT(0,5,"FUNCTION NAME:");
