@@ -593,12 +593,11 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
 
 // u32 GAX_fx
 // https://decomp.me/scratch/pc18o - beanieaxolotl
-// accuracy -> 79.62%
+// accuracy -> 100%
 
  u32 GAX_fx(u32 fxid) {
     
-    GAX_FX_channel*         temp;
-    GAX_tracker_asm_params* tracker_asm;
+    GAX_FX_channel* temp;
     
     s32 i;
     int curfxch = 0;
@@ -625,24 +624,24 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
         GAX_ram->fx_channels[curfxch].fxvol         = 255;   // full volume
         GAX_ram->fx_indexes[curfxch]                = fxid;  // store the called fxid
         
-    
-    } else if (!(GAX_ram->params->flags & GAX_SPEECH) && GAX_ram->params->debug) {
-         // if the user plays a speech SFX without setting
-         // the GAX_SPEECH flag in GAX2_init
-        GAX_ASSERT("GAX_FX",
-        "YOU TRIED TO PLAY A SPEECH FX BUT HAVE NOT USED THE GAX_SPEECH FLAG WITH GAX2_INIT.");
-    
+    } else if ((GAX_ram->params->flags & GAX_SPEECH)) {
+        GAX_ram->tracker_asm[0x1E6] = fxid - 0x100;
+        GAX_ram->tracker_asm[0x1E7] = 0; 
+        GAX_ram->tracker_asm[0x1E8] = 0;
+        
     } else {
-        // to do: everything here
-        /* tracker_asm = GAX_ram->tracker_asm;
-           *(u32 *)&tracker_asm[6].field_0xea = fxid - 0x100;
-           *(undefined4 *)&tracker_asm[6].field_0xee = 0;
-           *(undefined4 *)&tracker_asm[6].field_0xf2 = 0; */
+        if (GAX_ram->params->debug) {
+             // if the user plays a speech SFX without setting
+             // the GAX_SPEECH flag in GAX2_init
+            GAX_ASSERT("GAX_FX",
+            "YOU TRIED TO PLAY A SPEECH FX BUT HAVE NOT USED THE GAX_SPEECH FLAG WITH GAX2_INIT.");
+        }
     }
 
     return curfxch;
     
 }
+
 
 // u32 GAX_fx_ex
 // https://decomp.me/scratch/fB1g4 - beanieaxolotl
