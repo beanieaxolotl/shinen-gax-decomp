@@ -597,8 +597,6 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
 
  u32 GAX_fx(u32 fxid) {
     
-    GAX_FX_channel* temp;
-    
     s32 i;
     int curfxch = 0;
     int prio1   = 0;
