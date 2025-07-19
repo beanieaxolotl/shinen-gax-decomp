@@ -782,7 +782,27 @@ void GAX_stop_fx(s32 fxch) {
     
 }
 
-void GAX_set_music_volume(s32 ch, u32 vol) {}
+// void GAX_set_music_volume
+// https://decomp.me/scratch/hTUjg - beanieaxolotl
+// accuracy -> 75.49%
+
+void GAX_set_music_volume(s32 ch, u32 vol) {
+    
+    int i;
+
+    // clamp volume into 8-bit range
+    vol = GAX_CLAMP(vol, 0, 255);
+    
+    if (ch == -1) {
+        // set all of the channel volumes to the user-defined volume
+        for (i = 0; i < GAX_ram->replayer->song->num_channels; i++) {
+            GAX_ram->replayer->channels[i].mixing_volume = vol;
+        }
+    } else if (ch > -2 && ch < GAX_ram->replayer->song->num_channels) {
+        GAX_ram->replayer->channels[ch].mixing_volume = vol;
+    }
+    
+}
 
 // void GAX_set_fx_volume
 // https://decomp.me/scratch/yApBw - beanieaxolotl
@@ -844,7 +864,7 @@ u32 GAX_get_free_mem() {
 
 // void GAX_ASSERT_PRINT
 // https://decomp.me/scratch/nTYY5 - beanieaxolotl
-// accuracy -> 89.25%
+// accuracy -> 91.72%
 
 void GAX_ASSERT_PRINT(int x, int y, const char* string) {
 
@@ -853,8 +873,8 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
     char mapped_letter;
     int  offset;
     int  i;
-    
-    vram_offset = (u16*)(VRAM + x*2 + y*64);
+
+    vram_offset = (u16*)(VRAM + x*2+y*64);
     letter      = string[i];
 
     while (TRUE) {
@@ -863,7 +883,7 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
             break;
         }
         i = 0;
-        offset        = (*vram_offset & 63)>>1;
+        offset        = ((u32)vram_offset & 63)>>1;
         mapped_letter = string[i];
         
         if (offset < 32) {
@@ -877,8 +897,7 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
                     // our text wound up off-screen!
                     break;
                 }
-                offset++;
-                i++;
+                offset++, i++;
                 if (offset > 31) {
                     goto map_letter;
                 }
@@ -911,7 +930,7 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
             } else if (mapped_letter < 'A') {
                 mapped_letter -= 0x2F;
                 
-            } else if (mapped_letter < 'a') {
+            } else if ('a' <= mapped_letter) {
                 // convert lowercase to uppercase
                 mapped_letter -= 0x56;
                 
@@ -919,13 +938,11 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
                 // in the GAX font, letters are stored directly after the numbers
                 mapped_letter -= 0x36;
             }     
-            goto process_text;
 
-        process_text:
-            *vram_offset = mapped_letter;
-            vram_offset++;
-            letter = string[0];
-            string++;
+        *vram_offset = mapped_letter;
+        vram_offset++;
+        letter = string[i];
+        string++;
             
     }
 }
