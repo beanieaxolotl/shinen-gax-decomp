@@ -325,56 +325,72 @@ typedef struct GAX_player {
 } GAX_player;
 
 
+typedef struct GAX_playback_buffer {
+    u8 unused;
+    b8 update;
+    u16 mixrate;
+    u16 timer_reload;
+} GAX_playback_buffer;
+
+
 struct {
+
+    // header
 
     u32             signature;     // set to GAX3
     GAXParams*      params;
     GAXSongData*    fx_data;
     GAX_FX_channel* fx_channels;
     u32             num_fx_channels;
-    u8*             tracker_asm;
+    u32*            speech_unk;
     GAX_channel*    channels;
 
-    u8*   render_asm;
-    u32*  unk20;
-    u32*  unk24;
-    u32*  dma2cnt_unk;
-    u32   memory_size; // u32 *unk2C // this fixes it??!?!
-    u32   dma1sad_unk;
-    u32   dma2sad;
-    u8*   mix_buffer;
-    u16   mix_buffer_size;
-    u16   pad3E;
-    u32   music_pitch;
-    u32   fx_pitch;
-    b8    buffer_unk;
-    u8    pad49[3];
-    u32   pad4C[2];
-    u32   irq_state;
-    u8    volboost_level;
-    u8    unk59;
-    u8    playback_state;
-    u8    unk5B[2];
-    b8    irq_finished;
-    b8    unk5E;
-    u8    unk5F;
-    void* unk60;
-    void* asm_end;
-    void* render_asm_ptr;
-    u32   pad6C[2];
-    u32   dc_correction_val;
-    u32   unk78[3];
+    // buffer properties / variables
+
+    u8*                  unused1C;
+    u32*                 unused20;
+    GAX_playback_buffer* buf_header_dma1;
+    GAX_playback_buffer* buf_header_dma2;
+    GAX_playback_buffer* current_buf;
+    vu32                 buffer_dma1;
+    vu32                 buffer_dma2;
+    GAX_playback_buffer* mix_buffer;
+    u16                  timer_reload_dma1;
+    u16                  timer_reload_dma2;
+    u32                  music_pitch;
+    u32                  fx_pitch;
+    b8                   buffer_unk;
+
+    u32 unk4C[0x2];
+    u32 irq_state;
+    u8  volboost_level;
+    u8  unk59;
+    u8  playback_state;
+    u8  unk5B;
+    u8  unk5C;
+    b8  irq_finished;
+    b8  unk5E;
+    u8  unk5F;
+
+    // asm code
+
+    void* gax_tracker_asm;
+    void* gax_tracker_asm_end;
+    void* render_asm;
+    void* gax_output_render_asm_end;
+    u32   gax_filt;
+
+    u16   unk74;
+    u16   dc_correction_val;
+    void* unk78;
+    u32   fxch_memsize;
+    u32   unk80;
     u32   free_mem;
     u8    fx_indexes[MAX_FX_CHANNELS];
-    u8*   scratch_mem;
-    u32   scratch_mem_size;
+    u8*   scratchmem;
+    u32   scratchmem_size;
 
     GAX_FX_channel fxch[MAX_FX_CHANNELS];
 
-    u8  unk224;
-    b8  update_buffer;
-    u16 mixrate;
-    u16 mixbuffer1_size;
-    u16 mixbuffer2_size;
-
 }* GAX_ram;
+

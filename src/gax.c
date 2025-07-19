@@ -80,7 +80,7 @@ const u32 GAX_periodtable[384] = {
 void GAX2_init_song() {}
 
 // void GAX2_init_soundhw
-// https://decomp.me/scratch/nNgcv - beanieaxolotl, christianttt
+// https://decomp.me/scratch/1jgaK - beanieaxolotl, christianttt
 // accuracy -> 98.53%
 
 void GAX2_init_soundhw() {
@@ -90,7 +90,7 @@ void GAX2_init_soundhw() {
     vu16 *fifo_b;
     vu16 *fifo_a;
     
-    if (GAX_ram->dma2cnt_unk != NULL) {
+    if (GAX_ram->buf_header_dma2 != NULL) {
         
         *(vu32 *)REG_ADDR_DMA1CNT = 4;
         *(vu32 *)REG_ADDR_DMA2CNT = 4;
@@ -107,7 +107,7 @@ void GAX2_init_soundhw() {
         }
         
         REG_DMA2DAD = REG_ADDR_FIFO_B;
-        REG_DMA2SAD = GAX_ram->dma2sad;
+        REG_DMA2SAD = GAX_ram->buffer_dma2;
 
     } else {
         
@@ -125,8 +125,8 @@ void GAX2_init_soundhw() {
     
     REG_SOUNDBIAS_H = 0x42;
     REG_DMA1DAD = REG_ADDR_FIFO_A;
-    REG_DMA1SAD = GAX_ram->dma1sad_unk;
-
+    REG_DMA1SAD = GAX_ram->buffer_dma1;
+    
 }
 
 
@@ -368,27 +368,23 @@ void GAX2_calc_mem(GAXParams* params) {
 
 // void GAX_irq
 // https://decomp.me/scratch/rkmEm - beanieaxolotl
-// accuracy -> 60.31%
+// accuracy -> 60.23%
 
 void GAX_irq() {
     
     if (GAX_ram->signature == 'GAX3' && GAX_ram->irq_state) {
         
         // reset DMA and timer registers
-        // we also check the signature for integrity reasons
-        
         if (GAX_ram->irq_state == 1) {
             GAX_ram->irq_state = 2; // update IRQ state
-
-            // enable Direct Sound
-            REG_SOUNDCNT_X = SOUND_MASTER_ENABLE; 
+            REG_SOUNDCNT_X = SOUND_MASTER_ENABLE; // enable Direct Sound
             // reset timer 0
-            REG_TM0CNT_L = 65536 - (GAX_ram->mixbuffer1_size | 0xC00000); 
+            REG_TM0CNT_L = 65536 - (GAX_ram->timer_reload_dma1 | 0xC00000); 
 
             // handler for different mixing rate
-            if (GAX_ram->dma2cnt_unk) {
+            if (GAX_ram->buf_header_dma2 != NULL) {
                 // reset timer 1
-                REG_TM1CNT_L = 65536 - (GAX_ram->mixbuffer2_size | 0xC00000);
+                REG_TM1CNT_L = 65536 - (GAX_ram->timer_reload_dma2 | 0xC00000);
             }
         }
         
@@ -399,19 +395,26 @@ void GAX_irq() {
         
         if (*(int*)&GAX_ram->buffer_unk == 1 && GAX_ram->irq_state > 1) {
             
-            if (GAX_ram->dma2cnt_unk) {
+            if (GAX_ram->buf_header_dma2 != NULL) {
                 REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT;
             }
             
-            REG_DMA1SAD   = GAX_ram->dma1sad_unk + ((*(u16*)&GAX_ram->buffer_unk^1) * (u16)GAX_ram->unk24[1]);
+            REG_DMA1SAD = (int)GAX_ram->buffer_dma1 + 
+                          ((*(u16*)&GAX_ram->buffer_unk^1) 
+                          * (u16)GAX_ram->buf_header_dma1->timer_reload);
+            
             REG_DMA1CNT_H = DMA_ENABLE | DMA_START_SPECIAL | DMA_32BIT | DMA_REPEAT | DMA_DEST_RELOAD;
             
-            if (GAX_ram->dma2cnt_unk) {
-                REG_DMA2SAD = GAX_ram->dma2sad + ((GAX_ram->buffer_unk^1) * (u16)GAX_ram->dma2cnt_unk[1]);
+            if (GAX_ram->buf_header_dma2 != NULL) {
+                REG_DMA2SAD = (int)GAX_ram->buffer_dma2 + 
+                              ((GAX_ram->buffer_unk^1) 
+                              * (u16)GAX_ram->buf_header_dma1->timer_reload);
+                
                 REG_DMA2CNT_H = DMA_ENABLE | DMA_START_SPECIAL | DMA_32BIT | DMA_REPEAT | DMA_DEST_RELOAD;
             }
             
         }
+        
         GAX_ram->irq_finished = 0;
     }
     
@@ -421,14 +424,14 @@ void GAX_play() {}
 
 // void GAX_pause
 // https://decomp.me/scratch/zama3 - beanieaxolotl
-// accuracy -> 71.79%
+// accuracy -> 68.04%
 
 void GAX_pause() {
 
     if (GAX_ram->irq_state) {
         GAX_ram->irq_state = 0;
 
-        if (GAX_ram->dma2cnt_unk) {
+        if (GAX_ram->buf_header_dma2) {
             REG_SOUNDCNT_H &= SOUND_A_FIFO_RESET | SOUND_A_TIMER_1
                             | SOUND_B_FIFO_RESET | SOUND_B_TIMER_1 | 0x00FF;
         } else {
@@ -436,7 +439,7 @@ void GAX_pause() {
         }
         
         REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
-        if (GAX_ram->dma2cnt_unk) {
+        if (GAX_ram->buf_header_dma2) {
             REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
         }
     }
@@ -445,13 +448,15 @@ void GAX_pause() {
 // void GAX_resume
 // https://decomp.me/scratch/msHD3 - beanieaxolotl, christianttt
 // accuracy -> 100%
+// ======================
+// edits by beanieaxolotl
 
 void GAX_resume() {
     
     if (!GAX_ram->irq_state) {
         GAX_ram->irq_state = 1;
         
-        if (GAX_ram->dma2cnt_unk) {
+        if (GAX_ram->buf_header_dma2) {
             
             vu16* fifo_a = (vu16*)REG_ADDR_FIFO_A;
             u16 value = 0;
@@ -623,9 +628,9 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
         GAX_ram->fx_indexes[curfxch]                = fxid;  // store the called fxid
         
     } else if ((GAX_ram->params->flags & GAX_SPEECH)) {
-        GAX_ram->tracker_asm[0x1E6] = fxid - 0x100;
-        GAX_ram->tracker_asm[0x1E7] = 0; 
-        GAX_ram->tracker_asm[0x1E8] = 0;
+        GAX_ram->speech_unk[0x1E6] = fxid - 0x100;
+        GAX_ram->speech_unk[0x1E7] = 0; 
+        GAX_ram->speech_unk[0x1E8] = 0;
         
     } else {
         if (GAX_ram->params->debug) {
@@ -807,20 +812,20 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
 void GAX_stop(void) {
 
     // to do: what does this do?
-    *(GAX_ram->fx_indexes + (int)GAX_ram->unk20 * 4) = 0;
-
+    *(GAX_ram->fx_indexes + (int)GAX_ram->unused20 * 4) = 0;
+    
     GAX_ram->irq_state = 0;
     REG_SOUNDCNT_X     = 0; // turn Direct Sound off
 
     // set dma values
     REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
-    if (GAX_ram->dma2cnt_unk) {
+    if (GAX_ram->buffer_dma2) {
         REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
     }
     
     // disable timer 0
     REG_TM0CNT_L = 0;
-    if (GAX_ram->dma2cnt_unk) {
+    if (GAX_ram->buffer_dma2) {
         // disable timer 1
         REG_TM1CNT_L = 0;
     }

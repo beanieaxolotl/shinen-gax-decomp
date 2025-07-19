@@ -7,9 +7,8 @@ u8 GAXTracker_generate_audio(GAX_channel *ch, GAX_player* replayer, u32 unk, u32
 }
 
 // u32 GAXTracker_open
-// https://decomp.me/scratch/g9rdn - AArt1256
-// accuracy -> 99%
-// edits by beanieaxolotl
+// https://decomp.me/scratch/7tzcx - AArt1256, beanieaxolotl
+// accuracy -> 100%
 
 void GAXTracker_open(GAX_channel *ch) {
     
@@ -34,9 +33,8 @@ void GAXTracker_open(GAX_channel *ch) {
     ch->priority          = 1 << 31; // set MSB of s32
     ch->unk1              = 0;
 
-
     if (GAX_ram->music_pitch == 0) {
-        GAX_ram->music_pitch = ((u64)0x100000000) / *(((u16*)GAX_ram->memory_size)+1);
+        GAX_ram->music_pitch = 0x100000000 / GAX_ram->current_buf->mixrate;
     }
 }
 
@@ -477,12 +475,12 @@ void GAXFx_open(GAX_channel *fxch) {
     fxch[1].empty_track  = FALSE;
 
     fxch->unk1          = GAX_ram->unk5B;
-    fxch->channel_index = 255;
+    fxch->channel_index = -1;
 
     if (GAX_ram->fx_pitch == 0) {
-        GAX_ram->fx_pitch = ((u64)0x100000000) / *(((u16*)GAX_ram->memory_size)+1);
+        GAX_ram->fx_pitch = 0x100000000 / GAX_ram->current_buf->mixrate;
     } 
-
+    
 }
 
 // u8 GAXFx_render
