@@ -368,7 +368,7 @@ void GAX2_calc_mem(GAXParams* params) {
 
 // void GAX_irq
 // https://decomp.me/scratch/rkmEm - beanieaxolotl
-// accuracy -> 60.23%
+// accuracy -> 60.31%
 
 void GAX_irq() {
     
@@ -408,7 +408,7 @@ void GAX_irq() {
             if (GAX_ram->buf_header_dma2 != NULL) {
                 REG_DMA2SAD = (int)GAX_ram->buffer_dma2 + 
                               ((GAX_ram->buffer_unk^1) 
-                              * (u16)GAX_ram->buf_header_dma1->timer_reload);
+                              * (u16)GAX_ram->buf_header_dma2->timer_reload);
                 
                 REG_DMA2CNT_H = DMA_ENABLE | DMA_START_SPECIAL | DMA_32BIT | DMA_REPEAT | DMA_DEST_RELOAD;
             }
