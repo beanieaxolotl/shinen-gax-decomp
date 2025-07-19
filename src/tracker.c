@@ -485,7 +485,7 @@ void GAXFx_open(GAX_channel *fxch) {
 
 // u8 GAXFx_render
 // https://decomp.me/scratch/qxLpH - beanieaxolotl
-// accuracy -> 90.65%
+// accuracy -> 91.76%
 
 u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
@@ -498,7 +498,7 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
         ch->instrument = NULL;
     }
     
-    if (!player->suspend_playback) {
+    if (player->is_playing) {
         
         if ((ch[1].rle_delay == 1 || (ch[1].rle_delay 
           && ch[1].waveslot_idx > 0)) && !player->unknown_delay) {
@@ -525,7 +525,7 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
             if (ch[1].waveslot_idx > 0) {   
                 
-                instrument = *(GAX_instrument **)((u32)temp * 4 + (int)GAX_ram->fx_data->instrument_data);
+                instrument = *(GAX_instrument **)(temp * 4 + GAX_ram->fx_data->instrument_data);
 
                 // instrument initialization
                 ch->instrument     = instrument;

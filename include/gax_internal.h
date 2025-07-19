@@ -302,7 +302,7 @@ typedef struct GAX_player {
     u16 step;
 
     u8 speed_buf[2];
-    b8 suspend_playback;
+    b8 is_playing;
     u8 unknown_delay;
     u8 speed_timer;
     b8 step_finished;
