@@ -23,16 +23,16 @@ static const u32 GAX_periodtable[384];
 
 // enums //
 
-/*enum perfstep_command {
-    PORTA_UP       = 0x1,
-    PORTA_DOWN     = 0x2,
-    SET_STEP       = 0x5,
-    DELAY_STEP     = 0x6,
-    VOLSLIDE_UP    = 0xA,
-    VOLSLIDE_DOWN  = 0xB,
-    SET_VOLUME     = 0xC,
-    SET_SPEED      = 0xF
-};*/
+enum perfstep_command {
+    PERF_PORTA_UP       = 0x1,
+    PERF_PORTA_DOWN     = 0x2,
+    PERF_SET_STEP       = 0x5,
+    PERF_DELAY_STEP     = 0x6,
+    PERF_VOLSLIDE_UP    = 0xA,
+    PERF_VOLSLIDE_DOWN  = 0xB,
+    PERF_SET_VOLUME     = 0xC,
+    PERF_SET_SPEED      = 0xF
+};
 
 enum step_command {
     PORTA_UP       = 0x1,
