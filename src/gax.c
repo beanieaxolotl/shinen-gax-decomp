@@ -19,7 +19,11 @@ extern u8 GAXTracker_pingpong_asm_end[];
 // constants
 
 // the copyright string for the sound driver
-const char* GAX_copyright = "GAX Sound Engine 3.05A (Aug 16 2004) \xa9 Shin'en Multimedia. Code: B.Wodok";
+#ifdef MATCHING
+    const char* GAX_copyright = "GAX Sound Engine 3.05A (Aug 16 2004) \xa9 Shin'en Multimedia. Code: B.Wodok";
+#else
+    const char* GAX_copyright = "GAX Sound Engine 3.05A ("__DATE__") \xa9 Shin'en Multimedia. Code: B.Wodok";
+#endif
 
 // mixing rate / timer reload value table
 const u16 GAX_table[9*2] = {
