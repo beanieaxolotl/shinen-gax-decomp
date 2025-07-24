@@ -135,7 +135,46 @@ void GAX2_init_soundhw() {
 
 
 void GAX2_init_volboost() {}
-void GAX_clear_mem() {}
+
+// void GAX_clear_mem
+// https://decomp.me/scratch/yf3Sy - beanieaxolotl
+// accuracy -> 90.42%
+
+void GAX_clear_mem(u32 dest, u32 size) {
+
+    u32 uVar1;
+    u8* puVar2;
+    int iVar3;
+    u32 uVar4;
+    u32 src;
+
+    while (dest & 3) {
+        *(u8*)dest = 0;
+        dest++, size--;
+    }
+    
+    src   = 0;
+    uVar4 = size & -32;
+    uVar1 = uVar4;
+    
+    if (uVar4 < 0) {
+        uVar1 = uVar4 + 3;
+    }
+    
+    CpuFastSet(&src, (void*)dest, 
+              (uVar1 << 9) >> 0xB | 1 << 24);
+    
+    puVar2 = (u8*)(uVar4 + dest);
+    iVar3  = size - uVar4;
+    
+    if (0 < iVar3) {
+        do {
+            *puVar2 = 0;
+            puVar2++, iVar3--;
+        } while (iVar3 != 0);
+    }
+    
+}
 
 // void GAX2_new
 // https://decomp.me/scratch/G9TYg - EstexNT
@@ -313,7 +352,87 @@ void GAX2_calc_mem(GAXParams* params) {
 }
 
   b8 GAX2_init(GAXParams* params) {}
-  b8 GAX2_jingle(const void* jingle) {}
+
+// b8 GAX2_jingle
+// https://decomp.me/scratch/qidkR - beanieaxolotl
+// accuracy -> 82.59%
+
+  b8 GAX2_jingle(const void* jingle) {
+
+    // unnamed / unidentified variables
+    int iVar1;
+    u32 uVar2;
+    int iVar3;
+
+    // identified variables
+    u32 size;
+    u8* dest;
+    u32 src;
+    
+    *dest, GAX_ram->unk80    = GAX_ram->unk78;
+    size,  GAX_ram->free_mem = GAX_ram->fxch_memsize;
+
+    if (GAX_ram->params->flags & GAX_NO_JINGLES) {
+        
+        // if the user had set the GAX_NO_JINGLE
+        // flag when attempting to call GAX2_jingle
+        if (GAX_ram->params->debug) {
+            GAX_ASSERT("GAX2_JINGLE", "GAX_NO_JINGLE FLAG IS SET");
+        }
+        // in 3.05-ND this simply returns FALSE
+        // and this function is effectively ignored
+        return FALSE;
+
+    } else {
+
+        // same as GAX_clear_mem? https://decomp.me/scratch/yf3Sy
+        
+        while ((u32)dest & 3) {
+            *(u8*)dest = 0;
+            dest++, size--;
+        }
+        
+        src = 0;
+        iVar1 = size & -32;
+        uVar2 = iVar1;
+        
+        if (iVar1 < 0) {
+            uVar2 = iVar1 + 3;
+        }
+        
+        CpuFastSet(&src, dest, 
+                  (uVar2 << 9) >> 0xB | 1 << 24);
+        
+        dest += iVar1;
+
+        // to do: this looks awkward
+        for (iVar3; size-iVar1 != iVar3; iVar3--) {
+            *dest = 0;
+            dest++;
+        }
+        
+        GAX_ram->irq_state = 0; // currently changing IRQs
+        *GAX_ram->unused20 = 1;
+        REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT;
+        if (GAX_ram->buf_header_dma2) {
+            REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT;
+        }
+        
+        GAX2_init_song(jingle, &REG_DMA1CNT_H, 
+                       DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT, 
+                       DMA_ENABLE | DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT);
+        GAX_open();
+
+        *(u8*)(GAX_ram->unk4C[(int)GAX_ram->unused20]) = 1;
+        
+        GAX_ram->params->is_songend   = FALSE; // song resumes after jingle playback
+        GAX_ram->params->is_jingleend = FALSE; // we just started the jingle
+        GAX_ram->playback_state       = 1;     // currently playing
+        GAX_ram->irq_state            = 1;     // IRQs are final?
+        
+        return TRUE;
+    }
+}
 
 // u32 GAX2_fx
 // https://decomp.me/scratch/krNc3
