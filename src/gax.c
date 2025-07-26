@@ -171,11 +171,11 @@ void GAX_clear_mem(u32 dest, u32 size) {
     puVar2 = (u8*)(dest + uVar4);
     iVar3  = size - uVar4;
     
-    if (0 < iVar3) {
-        do {
+    if (iVar3 > 0) {
+        while (iVar3 != 0) {
             *puVar2 = 0;
             puVar2++, iVar3--;
-        } while (iVar3 != 0);
+        }
     }
     
 }
