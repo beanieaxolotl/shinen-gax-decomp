@@ -138,16 +138,20 @@ void GAX2_init_volboost() {}
 
 // void GAX_clear_mem
 // https://decomp.me/scratch/yf3Sy - beanieaxolotl
-// accuracy -> 90.42%
+// accuracy -> 100%
 
 void GAX_clear_mem(u32 dest, u32 size) {
 
+    // unnamed / unidentified variables
     u32 uVar1;
     u8* puVar2;
     int iVar3;
-    u32 uVar4;
+    int uVar4;
+
+    // identified variables
     u32 src;
 
+    
     while (dest & 3) {
         *(u8*)dest = 0;
         dest++, size--;
@@ -160,11 +164,11 @@ void GAX_clear_mem(u32 dest, u32 size) {
     if (uVar4 < 0) {
         uVar1 = uVar4 + 3;
     }
-    
+
     CpuFastSet(&src, (void*)dest, 
               (uVar1 << 9) >> 0xB | 1 << 24);
     
-    puVar2 = (u8*)(uVar4 + dest);
+    puVar2 = (u8*)(dest + uVar4);
     iVar3  = size - uVar4;
     
     if (0 < iVar3) {
