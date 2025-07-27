@@ -423,6 +423,8 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 // u8 GAXTracker_render
 // https://decomp.me/scratch/GoWdE - AArt1256, beanieaxolotl, christianttt
 // accuracy -> 100%
+// ======================
+// edits by beanieaxolotl
 
 u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
     
@@ -430,7 +432,7 @@ u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
         ch->instrument = NULL;
     }
     
-    if (replayer->suspend_playback) {
+    if (replayer->is_playing) {
         if ((s16)ch->delay_frames != 0) {
             if ((--ch->delay_frames) == 0) {
                 GAXTracker_process_step(ch, replayer, 1);
@@ -485,7 +487,7 @@ void GAXFx_open(GAX_channel *fxch) {
 
 // u8 GAXFx_render
 // https://decomp.me/scratch/qxLpH - beanieaxolotl
-// accuracy -> 91.76%
+// accuracy -> 92.07%
 
 u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
 
@@ -503,7 +505,8 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
         if ((ch[1].rle_delay == 1 || (ch[1].rle_delay 
           && ch[1].waveslot_idx > 0)) && !player->unknown_delay) {
             
-            // this checks the rle delay value.
+            // this checks the FX channel's current semitone
+            // which reuses the rle delay variable
             // we only have to init an FX channel if this is exactly 1.
             
             temp = ch[1].rle_delay; 
@@ -522,62 +525,69 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
                 ch->cur_pitch   = (ch[1].rle_delay-2)*32;
                 ch->is_note_off = FALSE;
             }
-
-            if (ch[1].waveslot_idx > 0) {   
+            
+            if (ch[1].waveslot_idx > 0) {
                 
-                instrument = *(GAX_instrument **)(temp * 4 + GAX_ram->fx_data->instrument_data);
-
+                instrument = *(GAX_instrument **)(GAX_ram->fx_data->instrument_data + (ch[1].waveslot_idx));
+        
                 // instrument initialization
                 ch->instrument     = instrument;
                 ch->volenv_timer   = 0; // reset volume envelope timer
                 
                 // vibrato handler
-                ch->vibtable_index = 0; // reset vibrato phase
-                ch->vibrato_wait   = instrument->vibrato_wait;
-
+                ch->vibtable_index = 0;                // reset vibrato phase
+                ch->vibrato_wait   = instrument->unk8; // get instrument vib. wait
+    
                 // perflist handler
                 ch->cur_perfstep   = 0; // always start at perf step #0
                 ch->perflist_timer = 0; // reset perflist timer
                 ch->perfstep_delay = 0; // reset perflist delay value
-
+    
                 // miscellaneous
-                ch->instrument_volume = 255;   // full volume
-                ch->is_note_off       = FALSE; // note on
-                ch->toneporta_lerp    = 0;     // reset tone porta lerp
-                ch->target_pitch      = 0;
-                ch->perfstep_speed    = instrument->perfstep_speed;
-
-                if (!instrument->blank) {
-                    // if the instrument has data saved
-                    ch_info = GAX_ram->params->channel_info;
-                    if ((ch_info != NULL) && (ch->channel_index >= 0)) {
-                        ch_info[ch->channel_index*4].instrument = ch[1].waveslot_idx;
-                    }
-                } else {
+                ch->instrument_volume = 255;                        // full volume
+                ch->is_note_off       = FALSE;                      // note on
+                ch->toneporta_lerp    = 0;                          // reset tone porta lerp
+                ch->target_pitch      = 0;                          // no target pitch!
+                ch->perfstep_speed    = instrument->perfstep_speed; // get perf step speed
+    
+                if (instrument->blank) {
                     // instrument is empty
                     ch->instrument = NULL;
+                    
+                } else {
+                    // instrument has data saved
+                    ch_info = GAX_ram->params->channel_info;
+                    if ((ch_info != NULL) && (ch->channel_index >= 0)) {
+                        // updates the GAXChannelInfo struct in the user's GAXParams if possible
+                        ch_info[ch->channel_index].instrument = ch[1].waveslot_idx;
+                    }
                 }
             }
             
             if (ch[1].rle_delay > 1) {
                 ch->cur_pitch += ch[1].unk1;
             }
-            // to do: check this; this doesn't seem right
-            ch->instrument_volume = ch[1].ignore;
-            ch->vol_slide_val     = 0;
-            ch->porta_val         = 0;
-            ch[1].waveslot_idx, ch[1].unk1 = 0;
-            ch[1].rle_delay = 0;
+            
+            ch->instrument_volume = ch[1].ignore; // reused variable
+            ch->vol_slide_val     = 0;            // reset volume slide variable
+            ch->porta_val         = 0;            // reset portamento variable
+            
+            ch[1].waveslot_idx, ch[1].unk1 = 0;   // wave slot index defaults to 0
+            ch[1].rle_delay = 0;                  // reused variable
+            
         }
     }
     
     temp = ch->perflist_timer;
     if (ch->instrument && ch->perflist_timer == 0) {
-        if (ch->perfstep_speed == 0) {
+        if (ch->perfstep_speed == 0) { // no perflist?
+            // ignore perf list with a step speed of 0
             goto process_audio;
+        } else {
+            GAXTracker_process_perflist(ch);           // setup / process stuff
+            ch->perflist_timer = ch->perfstep_speed-1; // initialize perf timer
         }
-        GAXTracker_process_perflist(ch);
-        ch->perflist_timer = ch->perfstep_speed-1;
+        
     }
 
     process_audio:
@@ -585,10 +595,8 @@ u8 GAXFx_render(GAX_channel* ch, GAX_player* player) {
         if (ch[1].empty_track) {
             ch->is_fixed = FALSE;
         }
-        if (ch->ignore) {
-            return 0;
-        } else {
-            return GAXTracker_generate_audio(ch, player, GAX_ram->fx_data, 1);
-        }
+        return (ch->ignore != 0) // from https://decomp.me/scratch/GoWdE
+            ? 0
+            : (u8)GAXTracker_generate_audio(ch, player, GAX_ram->fx_data, 1);
     
 }
