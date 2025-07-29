@@ -101,7 +101,7 @@ u8 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos)
 
 // void GAXTracker_process_frame
 // https://decomp.me/scratch/nCWzw - beanieaxolotl
-// accuracy -> 71.36%
+// accuracy -> 76.95%
 
 void GAXTracker_process_frame(GAX_channel *ch) {
 
@@ -203,7 +203,7 @@ void GAXTracker_process_frame(GAX_channel *ch) {
 
 // void GAXTracker_process_perflist
 // https://decomp.me/scratch/7QIir - beanieaxolotl
-// accuracy -> 54.92%
+// accuracy -> 55%
 
 void GAXTracker_process_perflist(GAX_channel *ch) {
     
@@ -218,14 +218,16 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
     
     if (ch->cur_perfstep >= instrument->perfstep_count) { 
         // stop perf list processing
-        ch->perfstep_speed = 0;
+        ch->perfstep_speed = 0; // override perflist step speed to 0 ticks
         if (ch->semitone_pitch == -30000) {
-            ch->priority = 1 << 31;
+            ch->priority = 1 << 31; // free channel from memory
         }
         
     } else {
-
-        perflist = (void *)instrument->perflist + (ch->cur_perfstep*8); // get the current perf step list
+        
+        perflist = (void *)instrument->perflist + // get the current perf step list
+                    (ch->cur_perfstep * 8); 
+        
         ch->cur_perfstep++; // advance to the next step
 
         if (perflist->note) { // only when a note is defined
@@ -242,26 +244,24 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
                 // initialize waveform playback variables
                 ch->wave_position     = 0;     // start of waveform data
                 ch->wave_direction    = 1;     // process wave data forwards
-                ch->wave_volume       = 255;   // full volume
+                ch->wave_volume       = 255;   // full volume if no set volume is defined
                 ch->enable_modulation = FALSE; // disable modulator
     
-                if ((wave->tune != 0) && (wave->min < wave->max)
-                   && wave->mod_step >= 0 && wave->mod_size > 0) {
+                if ((wave->tune != 0) && (wave->min < wave->max) && (wave->mod_step >= 0) && (wave->mod_size > 0)) {                  
                     ch->wave_position = *(int*)(&wave->pingpong) << 11;
-                    
                 } else {
                     
                     int j;
                     ch->enable_modulation = TRUE; // enable modulator
                     
-                    // calculate modulator position
+                    // calculate modulator position(?)
                     j = *(int*)(&wave->pingpong + (int)instrument->waves);
                     
                     ch->modulate_position  = j;
                     ch->wave_position      = j << 11;
-                    ch->modulate_timer     = wave->mod_step;
+                    ch->modulate_timer     = wave->mod_speed;
     
-                    if (wave->min > (j + wave->max)) {
+                    if ((j + wave->max) > wave->min) {
                         ch->modulate_direction = -1; // process backwards 
                     } else {
                         ch->modulate_direction = 1; // process forwards
@@ -271,10 +271,10 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
             }
         }
         
+        // fx command processing
+
         ch->wave_vol_slide_val = 0; // reset volume slide value
         ch->wave_porta_val = 0;     // reset portamento value
-
-        // fx command processing
         
         for (i = 0; i < 2; i++) {
             

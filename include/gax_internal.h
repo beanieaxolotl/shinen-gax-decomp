@@ -180,8 +180,8 @@ typedef struct GAX_wave_param {
     b8  modulation;
     b8  pingpong;
     u32 init;      // waveform offset
-    u32 min;       // loop start
-    u32 max;       // loop end
+    s32 min;       // loop start
+    s32 max;       // loop end
     s32 mod_size;
     u16 mod_step;
     u16 mod_speed;
@@ -272,6 +272,26 @@ typedef struct GAX_FX_channel {
     u32         fxid;
 
 } GAX_FX_channel;
+
+
+typedef struct GAX_unk0 {
+    // speech related
+    u8 unk0[594];
+    u16 unk252;
+    u8 unk254[732];
+    u8 unk530;
+    u8 unk531;
+    u8 unk532[338];
+    u8 unk684;
+    u8 unk685;
+    u8 unk686[178];
+    u8 unk738;
+    u8 unk739;
+    u8 unk73A[78];
+    void* unk788;
+    void* unk78C;
+    void* unk790;
+} GAX_unk0;
 
 
 typedef struct GAX_playbackvars {

@@ -81,12 +81,70 @@ void SLTSF() {
 	
 }
 
-void speech_asl() {
-	
+// s16 speech_asl
+// https://decomp.me/scratch/ocZIG - beanieaxolotl
+// accuracy -> 46.89%
+
+s16 speech_asl(s16 param1, s32 param2) {
+    
+    if (param2 > 15) {
+        if (param2 > -15) {
+            if (param1 << 16 >= 0) {
+                return 0;
+            } else {
+                return -1;
+            }
+        }
+    
+        if (param2 < 0) {
+            if ((param2 != -15) && (-param2 > 14)) {
+                if (param1 < 0) {
+                    return -1;
+                }
+                return 0;
+            }
+            if ((param2 == 16) || (-param2 < -16)) {
+                return 0;
+            }
+            if (param2 < 1) {
+                return param1 >> param2;
+            }
+        }
+        return param1 << param2;
+        
+    } else {
+        return 0;
+    }
+    
 }
 
-void speech_create() {
-	
+// void speech_create
+// https://decomp.me/scratch/qne2u - beanieaxolotl
+// accuracy -> 100%
+
+void speech_create(GAX_unk0* speech_unk) {
+    
+    if (speech_unk != NULL) {
+        
+        GAX_clear_mem((u32)speech_unk, 0x268); // clear / prepare memory
+        speech_unk->unk252 = 40;
+        
+        CpuSet(STSF, 
+               &speech_unk->unk530, 
+               REG_BASE|0x55);      // REG_BLDY
+        CpuSet(SLTSF, 
+               &speech_unk->unk684, 
+               REG_BASE|0x2D);      // REG_BG2Y
+        CpuSet(GAXSpeech_mix, 
+               &speech_unk->unk738, 
+               (u32)&REG_BG1HOFS);
+
+        speech_unk->unk788 = &speech_unk->unk531;
+        speech_unk->unk78C = &speech_unk->unk685;
+        speech_unk->unk790 = &speech_unk->unk739;
+        
+    }
+    
 }
 
 void speech_decode() {
