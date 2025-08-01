@@ -228,19 +228,20 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
         
         perflist = (void *)instrument->perflist + // get the current perf step list
                     (ch->cur_perfstep * 8); 
-        
         ch->cur_perfstep++; // advance to the next step
 
         if (perflist->note) { // only when a note is defined
-            ch->semitone_pitch = (perflist->note-2) * 32;
+            ch->semitone_pitch = (perflist->note-2) * 32; // convert note to frequency space
             ch->is_fixed       = perflist->fixed;
             
             if (perflist->wave_idx) { // only if a wave index is defined
                 
                 // correct wave slot index to start at 0
                 ch->waveslot_idx = perflist->wave_idx-1;
+                
                 // get the wave data
                 wave = (GAX_wave_param*)(ch->waveslot_idx * sizeof(GAX_wave_param));
+                wave++;
     
                 // initialize waveform playback variables
                 ch->wave_position     = 0;     // start of waveform data
@@ -277,7 +278,7 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
         
         for (i = 0; i < 2; i++) {
             
-            int fx_command; // effect type
+            u32 fx_command; // effect type
             fx_command = *(u16*)&perflist->commands[i];
             
             if (fx_command >> 8 != 0) {
@@ -339,7 +340,7 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
 
                     default:
                         break;
-                    
+
                 }   
             }
         }
@@ -347,8 +348,8 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
 }
 
 // void GAXTracker_process_step
-// https://decomp.me/scratch/pnSyh - AArt1256, beanieaxolotl, anegoda1995
-// accuracy -> 65.15%
+// https://decomp.me/scratch/kRxBN - AArt1256, beanieaxolotl, anegoda1995
+// accuracy -> 66%
 
 void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 
@@ -364,57 +365,69 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
     u8* seq_byte;
 
     // step data processing
+    // reset these at the start of each step
+    ch->vol_slide_val = 0; // volume slide
+    ch->porta_val     = 0; // portamento
+    ch->delay_frames  = 0; // note delay
 
-    ch->vol_slide_val = 0;
-    ch->porta_val     = 0;
-    ch->delay_frames  = 0;
-
-    if (flag == 0) {
+    if (flag == FALSE) {
 
         if (replayer->pattern_finished) {
-            seq_data = replayer->song->track_data + ch->order[(s16)replayer->pattern].sequence_offset;
+
+            // load the track data
+            seq_data = replayer->song->track_data 
+                + ch->order[(s16)replayer->pattern].sequence_offset;
             ch->sequence    = seq_data;
-            ch->rle_delay   = 0;
-            ch->empty_track = *(b8*)seq_data; // read the first presence byte
-            ch->sequence++;                   // move into actual pattern data
+            
+            ch->rle_delay   = 0;              // reset RLE counter
+            ch->empty_track = *(b8*)seq_data; // is the track empty?
+            ch->sequence++;                   // if not, align to the first sequence byte
         }
 
         if (ch->empty_track) {
             // ignore the empty track
             return;
+            
         } else if (ch->rle_delay) {
             ch->rle_delay--;
             return;
+            
         } else {
-
             seq_byte = (u8*)ch->sequence;
-
+            
             // read the step data here
-            if (seq_byte[0] == RUN_LENGTH) {
-                // multiple empty steps (RLE compression)
-                ch->rle_delay = seq_byte[1]-1;
+            if (seq_byte[0] == RUN_LENGTH) {   // RLE decompression
+                ch->rle_delay = seq_byte[1]-1; // number of empty steps
                 ch->sequence  = seq_byte+2;
                 return;
+                
             } else {
+                
                 if (seq_byte[0] & 0x80) {
+                    
                     if ((seq_byte[0] & EMPTY_STEP) == 0) {
+                        // empty step
                         ch->sequence = seq_byte+1;
                         return;
+                        
                     } else if ((seq_byte[0] & EMPTY_STEP) < INSTR_ONLY) {
-                        note = seq_byte[0] & EMPTY_STEP;
+                        // note + instrument
+                        note           = seq_byte[0] & EMPTY_STEP;
                         instrument_idx = seq_byte[1];
-                        fx_type = 0;
-                        fx_param = 0;
+                        fx_param       = 0;
+                        fx_type        = 0;
                         ch->sequence = seq_byte+2;
+                        
                     } else {
                         // effect only
-                        note = 0;
+                        note           = 0;
                         instrument_idx = 0;
-                        fx_type  = seq_byte[1];
-                        fx_param = seq_byte[2];
+                        fx_type        = seq_byte[1];
+                        fx_param       = seq_byte[2];
                         ch->sequence = seq_byte+3;
                     }
-                }  else {
+                    
+                } else {
                     // note + instrument + fx
                     note           = seq_byte[0];
                     instrument_idx = seq_byte[1];
@@ -434,36 +447,41 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
             }
         }
     } else {
+        // get the next note + instrument
         note           = ch->next_semitone;
         instrument_idx = ch->next_instrument;
-        fx_type = 0;
-        fx_param = 0;
+        fx_param       = 0; // effects are ignored
+        fx_type        = 0;
     }
 
     if (fx_type != TONE_PORTA) {
+        
         // note off handler
         if (note == 1) {
             if (ch->instrument && ch->instrument->volume_envelope->sustain_point == 0xFF) {
                 // hard cut the note if 
                 // the instrument has no sustain point               
-                ch->semitone_pitch = -30000;
-                ch->wave_porta_val = 0;
-                ch->priority       = 1 << 31; // channel is now freed
-                ch->instrument     = NULL;
+                ch->semitone_pitch = -30000;  
+                ch->wave_porta_val = 0;       // end portamento
+                ch->priority       = 1 << 31; // free channel
+                ch->instrument     = NULL;    // free instrument
             }
             ch->is_note_off = TRUE;
+            
         } else if (note > 1) {
-            // convert note into pitch
+            // convert note into pitch frequency
             // this subtracts 2 from the note
             // value since 0x0 and 0x1 are reserved
             ch->cur_pitch = (note-2)<<5;
             ch->is_note_off = FALSE;
         }
+        
     }
 
     // instrument data processing
     if (instrument_idx) {
 
+        // get the instrument header
         instrument = (GAX_instrument*)(replayer->song->instrument_data + instrument_idx*4);
 
         // instrument initialization
@@ -472,7 +490,7 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 
         // vibrato handler
         ch->vibtable_index = 0; // reset vibrato phase
-        ch->vibrato_wait   = instrument->vibrato_wait;
+        ch->vibrato_wait   = instrument->unk8;
 
         // perflist handler
         ch->cur_perfstep   = 0; // always start at perf step #0
@@ -513,7 +531,7 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
             // 3xx - slides the note to the next one by X units
             // (the portamento is constantly applied each tick unlike XM)
             if (fx_param) {
-                ch->target_pitch = (note-2)*32;
+                ch->target_pitch   = (note-2)*32; // convert current note into frequency space
                 ch->toneporta_lerp = (ch->target_pitch-ch->cur_pitch)/fx_param;
             }
             break;
@@ -521,8 +539,8 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
         case MODULATE_SPEED:
             // 7xy - sets the speed numerator and denominator values independently
             // this creates a swing effect or emulates a non-integer tempo
-            *(u16*)replayer->speed_buf = (fx_param >> 4) | (fx_param << 8) & 0xF00;
-            replayer->speed_timer      = (fx_param >> 4) + 0xFF;
+            *(u16*)replayer->speed_buf = fx_param >> 4 | (fx_param << 8 & 0xF00); // swap nybbles
+            replayer->speed_timer      = (fx_param >> 4) - 1; // start from the lower nybble
             break;
 
         case VOLSLIDE_UP:
@@ -541,20 +559,15 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
             break;
 
         case BREAK_PATTERN:
-
-            // Dxx - breaks/skips the current pattern
-
-            // bug: despite it being set,
-            // the step index does not change
-
+            // Dxx - breaks/skips the current pattern.
             replayer->skip_pattern = TRUE;
-            replayer->new_step_idx = fx_param;
+            replayer->new_step_idx = fx_param; // ignored
             break;
 
         case SET_SPEED:
             // Fxx - sets the speed value (ticks per step)
-            *replayer->speed_buf = fx_param;
-            replayer->speed_timer = fx_param;
+            *replayer->speed_buf  = fx_param;
+            replayer->speed_timer = fx_param-1;
             break;
 
         default:
