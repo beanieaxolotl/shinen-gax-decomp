@@ -551,25 +551,31 @@ void GAX_play() {}
 
 // void GAX_pause
 // https://decomp.me/scratch/zama3 - beanieaxolotl
-// accuracy -> 68.04%
+// accuracy -> 77.23%
 
 void GAX_pause() {
 
     if (GAX_ram->irq_state) {
         GAX_ram->irq_state = 0;
 
-        if (GAX_ram->buf_header_dma2) {
+        if (GAX_ram->buf_header_dma2 != NULL) {
             REG_SOUNDCNT_H &= SOUND_A_FIFO_RESET | SOUND_A_TIMER_1
-                            | SOUND_B_FIFO_RESET | SOUND_B_TIMER_1 | 0x00FF;
+                            | SOUND_B_FIFO_RESET | SOUND_B_TIMER_1 | 0xFF;
         } else {
-            REG_SOUNDCNT_H &= 0xFCFF;
+            REG_SOUNDCNT_H &= SOUND_A_FIFO_RESET | SOUND_A_TIMER_1
+                            | SOUND_B_FIFO_RESET | SOUND_B_TIMER_1 | 
+                              SOUND_B_LEFT_OUTPUT | SOUND_B_RIGHT_OUTPUT | 0xFF;
         }
         
-        REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
-        if (GAX_ram->buf_header_dma2) {
+        REG_DMA1CNT_H = DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
+        REG_DMA1CNT_H |= DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
+        
+        if (GAX_ram->buf_header_dma2 != NULL) {
             REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT;
         }
+        
     }
+    
 }
 
 // void GAX_resume
