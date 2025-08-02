@@ -101,13 +101,13 @@ u8 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos)
 
 // void GAXTracker_process_frame
 // https://decomp.me/scratch/nCWzw - beanieaxolotl
-// accuracy -> 76.95%
+// accuracy -> 82.41%
 
 void GAXTracker_process_frame(GAX_channel *ch) {
 
     u32 volenv_volume;
     int vibrato_pitch;
-    u16 pitch;
+    s16 pitch;
     int old_modulate_position;
     int newvol;
     int temp2;
@@ -124,18 +124,16 @@ void GAXTracker_process_frame(GAX_channel *ch) {
     ch->volenv_volume = GAXTracker_process_envelope(
         ch, ch->instrument->volume_envelope, &ch->volenv_timer);
 
-    
     // handle vibrato stuff
     if (ch->instrument->vibrato_depth > 0) {
-        // do we have vibrato at all?
-        if (ch->vibrato_wait > 0) {
+        if (ch->vibrato_wait <= 0) {
             // only apply vibrato if we finish waiting
-            ch->vibtable_index += ch->instrument->vibrato_speed & sizeof(GAX_vibtable)-1;
+            ch->vibtable_index = ch->instrument->vibrato_speed & (sizeof(GAX_vibtable)-1);
         } else {
             // wait for our vibrato to finish
             ch->vibrato_wait--;
         }
-        vibrato_pitch = GAX_vibtable[ch->vibtable_index] * ch->instrument->vibrato_depth;
+        vibrato_pitch = GAX_vibtable[ch->vibtable_index] * ch->instrument->vibrato_depth >> 8;
     }
     ch->vibrato_pitch = vibrato_pitch;
 
@@ -149,23 +147,23 @@ void GAXTracker_process_frame(GAX_channel *ch) {
     }
     
     old_modulate_position = ch->modulate_position;
-    instrument = ch->instrument;
+    instrument            = ch->instrument;
 
     ch->modulate_timer = instrument->wave_param[ch->waveslot_idx].mod_speed;
 
-    if (ch->modulate_direction < 1) {
+    if (ch->modulate_direction > 0) {
         // forwards modulation
         ch->modulate_position += instrument->wave_param[ch->waveslot_idx].mod_step;
-        if (ch->modulate_position < instrument->wave_param[ch->waveslot_idx].min) {
-            ch->modulate_position  += instrument->wave_param[ch->waveslot_idx].mod_step*2;
-            ch->modulate_direction = 1;
+        if (ch->modulate_position > instrument->wave_param[ch->waveslot_idx].mod_size) {
+            ch->modulate_position  -= instrument->wave_param[ch->waveslot_idx].mod_step*2;
+            ch->modulate_direction = -1;
         }         
     } else {
         // backwards modulation
         ch->modulate_position -= instrument->wave_param[ch->waveslot_idx].mod_step;
-        if (instrument->wave_param[ch->waveslot_idx].max < instrument->wave_param[ch->waveslot_idx].mod_size) {
-            ch->modulate_position  += instrument->wave_param[ch->waveslot_idx].mod_step*-2;
-            ch->modulate_direction = -1;
+        if (ch->modulate_position < instrument->wave_param[ch->waveslot_idx].mod_size) {
+            ch->modulate_position  += instrument->wave_param[ch->waveslot_idx].mod_step*2;
+            ch->modulate_direction = 1;
         } 
     }
     ch->wave_position += (old_modulate_position * -2048) + (ch->modulate_position * 2048);
@@ -187,7 +185,7 @@ void GAXTracker_process_frame(GAX_channel *ch) {
         newvol = GAX_CLAMP(newvol, 0, 255);
         ch->wave_volume = newvol;
 
-        pitch  = *&ch->cur_pitch + ch->porta_val;
+        pitch               = ch->cur_pitch + ch->porta_val;
         ch->semitone_pitch += ch->wave_porta_val;
 
         if (ch->toneporta_lerp && (

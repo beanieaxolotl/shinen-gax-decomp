@@ -224,7 +224,7 @@ typedef struct GAX_channel {
     b8  enable_modulation;
     s8  modulate_direction;
     u8  modulate_timer;
-    u8  vibrato_wait;
+    s8  vibrato_wait;
     u8  volenv_volume;
     u8  wave_volume;
     u8  mixing_volume;
@@ -253,7 +253,7 @@ typedef struct GAX_channel {
     GAX_order* order;
 
     s32 wave_position;
-    u32 modulate_position;
+    s32 modulate_position;
     s32 priority;
     u16 cur_pitch;
     u8  next_semitone;
