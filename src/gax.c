@@ -47,7 +47,10 @@ const u8 gax_default_package[200] = {
 
 // assertion screen font
 const char GAX_font[281] = {
-    // to do: this is a LZ77 compressed font
+// Don't think it's LZ77:
+// Should be BIOS Huffman compressed font.
+// Header: 0x0004A028 -> Type=Huff(2), Unit=8-bit, DecompressedSize=1184 bytes.
+// Following data for tree: size byte 0x11 -> 18 bytes of tree data following then the compressed font glyphs of 37 tiles of 4bpp, 8x8 font data (A-Z, 0-9, space) 32 bytes each.
 };
 
 // vibrato table
