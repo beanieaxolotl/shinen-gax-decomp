@@ -638,7 +638,7 @@ void GAX_resume_music() {
 
 // u32 GAX_backup_fx
 // https://decomp.me/scratch/WUJAg - beanieaxolotl, christianttt
-// accuracy -> 99.35%
+// accuracy -> 99.95%
 
 u32 GAX_backup_fx(s32 fxch, void* buf) {
 
@@ -646,14 +646,16 @@ u32 GAX_backup_fx(s32 fxch, void* buf) {
     u32 buf_size;
     
     if (fxch == -1) {
-        u32 num_fx = GAX_ram->num_fx_channels;
-        buf_size = num_fx * 80;
-    } else {
-        buf_size = 80;
+        buf = (void*)(GAX_ram->num_fx_channels * 0x50);
+    } 
+    else {
+        buf_size = 0x50;
     }
+    
     if (fxch == -1) {
         buf_size += GAX_ram->num_fx_channels;
-    } else {
+    } 
+    else {
         buf_size += 1;
     }
 
@@ -680,16 +682,19 @@ u32 GAX_backup_fx(s32 fxch, void* buf) {
     } else {
         
         void* src;
+        
 
         src = (u8*)GAX_ram->fx_channels + (fxch * 80);
+
         CpuSet(src, buf, REG_ADDR_BG1HOFS);
+        
         *((u8*)buf + 80) = GAX_ram->fx_indexes[fxch];
     }
     
     return buf_size;
-    
-    //Close but will come back to it
 
+    //Close but will come back to it
+    
 }
 
 

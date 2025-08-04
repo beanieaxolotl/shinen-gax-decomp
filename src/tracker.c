@@ -40,63 +40,66 @@ void GAXTracker_open(GAX_channel *ch) {
 
 
 // u32 GAXTracker_process_envelope
-// https://decomp.me/scratch/5lCKZ - beanieaxolotl
-// accuracy -> 70.98%
+// https://decomp.me/scratch/ZAb83 - beanieaxolotl, christianttt
+// accuracy -> 92.16%
 
-u8 GAXTracker_process_envelope(GAX_channel *ch, GAX_volenv *volenv, u16 *envpos) {
+u8 GAXTracker_process_envelope(GAX_channel *ch, const GAX_volenv *volenv, u16 *envpos) {
     
-    u32 current_point;
-    u16 x1   = *envpos;
-    s32 time = 0;
+
+    u16 current_time;
+    int i;
+    const GAX_volenv_point* cur_point;
+    const GAX_volenv_point* prev_point;
+    u16 prev_time;
+    u8  prev_volume;
+    s16 cur_lerp;
+    s32 val;
     
-    GAX_volenv *y1;
-    *envpos       = x1+1;
-    current_point = x1;
+    current_time = (*envpos)++;
+    
+    if (volenv->sustain_point != 0xFF && !ch->is_note_off && current_time == (&volenv->env_point)[volenv->sustain_point].x) {
+        *envpos = current_time;
+    }
 
-
-    if ((volenv->sustain_point != GAX_NOTSET) && !ch->is_note_off 
-        && (current_point == (&volenv->env_point)[volenv->sustain_point].x)) {
-        // pause the envelope until a note off is commenced
-        *envpos = x1;  
-    } 
-    if (*(u16*)(volenv + time * sizeof(GAX_volenv_point)) == current_point) {
-        
-        if ((&volenv->point_count)[volenv->point_count * sizeof(GAX_volenv_point)]
-            && (volenv->loop_end == GAX_NOTSET || (volenv->loop_end < time))) {
-            // free up this channel when the envelope stops
-            ch->semitone_pitch = -30000;
-            ch->wave_porta_val = 0;
-            ch->priority       = 1 << 31;
+    i = volenv->point_count - 1;
+    if (current_time >= (&volenv->env_point)[i].x) {
+        if ( (*(u8*)&((&volenv->env_point)[i+1])) == 0 ) {
+            if (volenv->loop_end == 0xFF || volenv->loop_end < i) {
+                ch->semitone_pitch = -30000;
+                ch->wave_porta_val = 0;
+                ch->priority = 1 << 31;
+            }
         }
-        *envpos = x1;
+        *envpos = current_time;
     }
 
-    time = volenv->point_count-1; // gets length of the envelope in frames
-
-    if (!ch->is_note_off && volenv->loop_start != GAX_NOTSET
-        && volenv->loop_end != GAX_NOTSET 
-        && current_point == (&volenv->env_point)[volenv->loop_end].x) {
-        // loop back to the previously defined loop start point
-        *envpos = (&volenv->env_point)[volenv->loop_start].x;
+    if (!ch->is_note_off && volenv->loop_start != 0xFF && volenv->loop_end != 0xFF) {
+        if (current_time == (&volenv->env_point)[volenv->loop_end].x) {
+            *envpos = (&volenv->env_point)[volenv->loop_start].x;
+        }
     }
-
-    for (x1 = volenv->env_point.x; x1 < current_point; time++) {
-        //x1._0_1_ = y1[1].point_count;
-        //x1._1_1_ = y1[1].sustain_point;
-        y1 = (GAX_volenv*)&y1->env_point.volume;
-    }
-
-    if (current_point == (&volenv->env_point)[time].x) {
-        // if we're directly on the point, apply the volume we see
-        return (&volenv->env_point)[time].volume;
-        
-    } else {
-        // if not, apply the precalculated lerp between the two points
-        return ((&volenv->env_point)[time].lerp * 
-                (current_point - (u16)((s32)volenv + time-1))) 
-              + (&volenv->point_count)[time];
-    }   
     
+    i = 0;
+    while ((&volenv->env_point)[i].x < current_time) {
+        i++;
+    }
+
+    cur_point = (&volenv->env_point) + i;
+
+    if (current_time == cur_point->x) {
+        return *(u8*)((u8*)cur_point + 8);
+    } else {
+        prev_point = (&volenv->env_point) + (i - 1);
+        
+        prev_time    = *(u16*)((u8*)prev_point + 4);
+        prev_volume  = *(u8*)((u8*)prev_point + 8);
+        cur_lerp     = *(s16*)((u8*)cur_point + 6);
+        
+        val = (s32)(current_time - prev_time) * cur_lerp;
+        val = (val >> 8) + prev_volume;
+        
+        return (u8)val;
+    }
 }
 
 // void GAXTracker_process_frame
