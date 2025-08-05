@@ -321,17 +321,17 @@ typedef struct GAX_player {
     u16 pattern;
     u16 step;
 
-    u8 speed_buf[2];
-    b8 is_playing;
-    u8 unknown_delay;
-    u8 speed_timer;
-    b8 step_finished;
-    b8 pattern_finished;
-    u8 global_volume;
-    b8 stop_on_song_end;
-    b8 is_song_end;
-    b8 skip_pattern;
-    b8 unk1B;
+    u16 speed_buf;
+    b8  is_playing;
+    u8  unknown_delay;
+    u8  speed_timer;
+    b8  step_finished;
+    b8  pattern_finished;
+    u8  global_volume;
+    b8  stop_on_song_end;
+    b8  is_song_end;
+    b8  skip_pattern;
+    b8  unk1B;
 
     u16 new_step_idx;
     u16 unk1E;

@@ -540,8 +540,8 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
         case MODULATE_SPEED:
             // 7xy - sets the speed numerator and denominator values independently
             // this creates a swing effect or emulates a non-integer tempo
-            *(u16*)replayer->speed_buf = fx_param >> 4 | (fx_param << 8 & 0xF00); // swap nybbles
-            replayer->speed_timer      = (fx_param >> 4) - 1; // start from the lower nybble
+            replayer->speed_buf   = fx_param >> 4 | (fx_param << 8 & 0xF00); // swap nybbles
+            replayer->speed_timer = (fx_param >> 4) - 1; // start from the lower nybble
             break;
 
         case VOLSLIDE_UP:
@@ -567,7 +567,7 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 
         case SET_SPEED:
             // Fxx - sets the speed value (ticks per step)
-            *replayer->speed_buf  = fx_param;
+            replayer->speed_buf   = fx_param;
             replayer->speed_timer = fx_param-1;
             break;
 
@@ -595,7 +595,7 @@ u8 GAXTracker_render(GAX_channel* ch, GAX_player* replayer) {
             }
         }
         
-        if (*(u16*)replayer->speed_buf != 0 && replayer->step_finished) {
+        if (replayer->speed_buf != 0 && replayer->step_finished) {
             GAXTracker_process_step(ch, replayer, 0);
         }
     }
