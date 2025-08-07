@@ -1,8 +1,12 @@
 #include "gax.h"
 
 
-void GAXOutput_open() {
+// void GAXOutput_open
+// https://decomp.me/scratch/TnIzW - beanieaxolotl
+// accuracy -> 100%
 
+void GAXOutput_open(GAX_player* player) {
+    player->timer = 1;
 }
 
 void GAXOutput_render() {
