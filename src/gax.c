@@ -578,33 +578,22 @@ void GAX_pause() {
 // edits by beanieaxolotl
 
 void GAX_resume() {
+    int i;
     
     if (!GAX_ram->irq_state) {
         GAX_ram->irq_state = 1;
         
         if (GAX_ram->buf_header_dma2) {
-            
-            vu16* fifo_a = (vu16*)REG_ADDR_FIFO_A;
-            u16 value = 0;
-            vu16* fifo_b = (vu16*)REG_ADDR_FIFO_B;
-            int i;
-
-            for (i = 7; i >= 0; i--) {
-                *fifo_a = value;
-                *fifo_b = value;
+            for (i = 0; i < 8; i++) {
+                *(vu16*)REG_ADDR_FIFO_A = 0;
+                *(vu16*)REG_ADDR_FIFO_B = 0;
             }
             REG_SOUNDCNT_H |= (SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT | 
                                SOUND_B_LEFT_OUTPUT | SOUND_B_RIGHT_OUTPUT);
-
         } else {
-            
-            vu16* fifo_a = (vu16*)REG_ADDR_FIFO_A;
-            u16 value = 0;
-            int i;
-
-            for (i = 7; i >= 0; i--) {
-                *fifo_a = value;
-            }
+           for (i = 0; i < 8; i++) {
+               *(vu16*)REG_ADDR_FIFO_A = 0;
+           }
             REG_SOUNDCNT_H |= (SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT);
         }
     }
