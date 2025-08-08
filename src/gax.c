@@ -87,53 +87,43 @@ const u32 GAX_periodtable[384] = {
 void GAX2_init_song() {}
 
 // void GAX2_init_soundhw
-// https://decomp.me/scratch/1jgaK - beanieaxolotl, christianttt
-// accuracy -> 98.53%
+// https://decomp.me/scratch/nNgcv - beanieaxolotl, christianttt
+// accuracy -> 100%
 
-void GAX2_init_soundhw() {
-    
-
+void GAX2_init_soundhw(void) {
     int i;
-    vu16 *fifo_b;
-    vu16 *fifo_a;
-    
-    if (GAX_ram->buf_header_dma2 != NULL) {
-        
-        *(vu32 *)REG_ADDR_DMA1CNT = 4;
-        *(vu32 *)REG_ADDR_DMA2CNT = 4;
-        
+
+    if (GAX_ram->dma2cnt_unk != 0)
+    {
+        REG_DMA1CNT = 4;
+        REG_DMA2CNT = 4;
         REG_SOUNDCNT_X = 0;
-        REG_SOUNDCNT_H = 0xFB0C;
+        REG_SOUNDCNT_H = 0xFB0C; // GAX_SOUND_A_SETUP (SOUND_A_RIGHT_OUTPUT | SOUND_A_LEFT_OUTPUT | SOUND_A_FIFO_RESET | SOUND_A_MIX_FULL) #define for header later
 
-
-        fifo_a = (vu16 *)REG_ADDR_FIFO_A;
-        fifo_b = (vu16 *)REG_ADDR_FIFO_B;
-        for (i = 7; i >= 0; i--) {
-            *fifo_a = 0;
-            *fifo_b = 0;
+        for (i = 0; i < 8; i++)
+        {
+            *(vu16*)REG_ADDR_FIFO_A = 0;
+            *(vu16*)REG_ADDR_FIFO_B = 0;
         }
-        
+
         REG_DMA2DAD = REG_ADDR_FIFO_B;
-        REG_DMA2SAD = GAX_ram->buffer_dma2;
-
-    } else {
-        
-        *(vu32 *)REG_ADDR_DMA1CNT = 4;
-        
+        REG_DMA2SAD = (u32)GAX_ram->dma2sad;
+    }
+    else
+    {
+        REG_DMA1CNT = 4;
         REG_SOUNDCNT_X = 0;
-        REG_SOUNDCNT_H = 0x0B04;
-        
+        REG_SOUNDCNT_H = 0xB04; // GAX_SOUND_B_SETUP (SOUND_B_RIGHT_OUTPUT | SOUND_B_LEFT_OUTPUT | SOUND_B_TIMER_1 | SOUND_B_FIFO_RESET | SOUND_B_MIX_FULL) #define for header later
 
-        fifo_a = (vu16 *)REG_ADDR_FIFO_A;
-        for (i = 7; i >= 0; i--) {
-            *fifo_a = 0;
+        for (i = 0; i < 8; i++)
+        {
+            *(vu16*)REG_ADDR_FIFO_A = 0;
         }
     }
-    
+
     REG_SOUNDBIAS_H = 0x42;
     REG_DMA1DAD = REG_ADDR_FIFO_A;
-    REG_DMA1SAD = GAX_ram->buffer_dma1;
-    
+    REG_DMA1SAD = (u32)GAX_ram->dma1sad_unk;
 }
 
 
