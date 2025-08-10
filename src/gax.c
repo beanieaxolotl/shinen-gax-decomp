@@ -83,6 +83,39 @@ const u32 GAX_periodtable[384] = {
 };
 
 
+// void GAX_open
+// https://decomp.me/scratch/sH7lJ - beanieaxolotl
+// accuracy -> 65.86
+
+void GAX_open() {
+
+    int i;
+    int offset;
+    
+    GAXOutput_open((&GAX_ram->replayer)[GAX_ram->unk20]); // reset timer
+    GAX_ram->current_buf = GAX_ram->buf_header_dma1;      // default to using the DMA1 buffer
+
+    if ((&GAX_ram->replayer)[GAX_ram->unk20]->song_2->num_channels) {
+        for (i = 0; i < (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->num_channels; i++) {
+            // reset the channel for playback
+            GAXTracker_open((GAX_channel*)(&(&GAX_ram->replayer)[GAX_ram->unk20]->channels->ignore + offset));
+            // load the data for the song's first order
+            *(u32*)(&(&GAX_ram->replayer)[GAX_ram->unk20]->channels->order + offset) 
+              = *(u32*)((&GAX_ram->replayer)[GAX_ram->unk20]->song_2->track_data + i * 4 + 3);
+            offset += sizeof(GAX_channel);
+        }
+    }
+
+    GAXSync_open((&GAX_ram->replayer)[GAX_ram->unk20]); // set up replayer variables
+    (&GAX_ram->replayer)[GAX_ram->unk20]->song = (&GAX_ram->replayer)[GAX_ram->unk20]->song_2;
+
+    if (GAX_ram->params->flags & GAX_SPEECH) {
+        // if the user enabled the GAX_SPEECH flag (voice playback)
+        GAXSpeech_open((int)GAX_ram->speech_unk);
+        *GAX_ram->speech_unk = (u32)GAX_ram->fx_data;
+    }
+    
+}
 
 void GAX2_init_song() {}
 
@@ -126,8 +159,53 @@ void GAX2_init_soundhw(void) {
     REG_DMA1SAD = (u32)GAX_ram->dma1sad_unk;
 }
 
+// void GAX2_init_volboost
+// https://decomp.me/scratch/qDGXO - beanieaxolotl
+// accuracy -> 33.68%
 
-void GAX2_init_volboost() {}
+void GAX2_init_volboost() {
+    
+    u16   volume;
+    void* tracker_asm;
+
+    int iVar1;
+    int iVar2;
+    u16 uVar3;
+
+    volume = (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->volume;
+
+    // this may use inlining
+    if (volume >= 512) {
+        GAX_ram->volboost_level = 2;
+        tracker_asm = GAX_ram->gax_tracker_asm;
+        *(u16*)(tracker_asm+0xD0) = 0x90AB;
+        *(u16*)(tracker_asm+0x54) = 0x90AB;
+        iVar2 = tracker_asm + 0x54;
+        iVar1 = tracker_asm + 0xD0;
+        uVar3 = 0xA0A8;        
+    } else {
+        if (volume >= 256) {
+            GAX_ram->volboost_level = 1;
+            tracker_asm = GAX_ram->gax_tracker_asm;
+            *(u16*)(tracker_asm+0xD0) = 0x912B;
+            *(u16*)(tracker_asm+0x54) = 0x912B;
+            iVar2 = tracker_asm + 0x54;
+            iVar1 = tracker_asm + 0xD0; 
+            uVar3 = 0xA128;
+        } else {
+            GAX_ram->volboost_level = 0;
+            tracker_asm = GAX_ram->gax_tracker_asm;
+            *(u16*)(tracker_asm+0xD0) = 0x91AB;
+            *(u16*)(tracker_asm+0x54) = 0x91AB;
+            iVar2 = tracker_asm + 0x54;
+            iVar1 = tracker_asm + 0xD0; 
+            uVar3 = 0xA1A8;
+        }
+    }
+    *(u16*)(iVar1+4) = uVar3;
+    *(u16*)(iVar2+4) = uVar3;
+    
+}
 
 // void GAX_clear_mem
 // https://decomp.me/scratch/yf3Sy - beanieaxolotl
@@ -904,7 +982,7 @@ void GAX_stop_fx(s32 fxch) {
 
 // void GAX_set_music_volume
 // https://decomp.me/scratch/hTUjg - beanieaxolotl
-// accuracy -> 75.49%
+// accuracy -> 81.67%
 
 void GAX_set_music_volume(s32 ch, u32 vol) {
     
@@ -916,10 +994,11 @@ void GAX_set_music_volume(s32 ch, u32 vol) {
     if (ch == -1) {
         // set all of the channel volumes to the user-defined volume
         for (i = 0; i < GAX_ram->replayer->song->num_channels; i++) {
-            GAX_ram->replayer->channels[i].mixing_volume = vol;
+            (&GAX_ram->replayer)[GAX_ram->unk20]->channels[i].mixing_volume = vol;
         }
-    } else if (ch > -2 && ch < GAX_ram->replayer->song->num_channels) {
-        GAX_ram->replayer->channels[ch].mixing_volume = vol;
+    } else if (ch > -2 && 
+               ch < (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->num_channels) {
+        (&GAX_ram->replayer)[GAX_ram->unk20]->channels[ch].mixing_volume = vol;
     }
     
 }
@@ -947,12 +1026,11 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
 
 // void GAX_stop
 // https://decomp.me/scratch/G5819 - beanieaxolotl
-// accuracy -> 61.48%
+// accuracy -> 61.76%
 
-void GAX_stop(void) {
+void GAX_stop() {
 
-    // to do: what does this do?
-    *(GAX_ram->fx_indexes + (int)GAX_ram->unused20 * 4) = 0;
+    (&GAX_ram->replayer)[GAX_ram->unk20]->is_playing = FALSE;
     
     GAX_ram->irq_state = 0;
     REG_SOUNDCNT_X     = 0; // turn Direct Sound off
@@ -969,6 +1047,7 @@ void GAX_stop(void) {
         // disable timer 1
         REG_TM1CNT_L = 0;
     }
+
 }
 
 

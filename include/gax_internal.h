@@ -368,7 +368,7 @@ struct {
     // buffer properties / variables
 
     u8*                  unused1C;
-    u32*                 unused20;
+    u32                  unk20;
     GAX_playback_buffer* buf_header_dma1;
     GAX_playback_buffer* buf_header_dma2;
     GAX_playback_buffer* current_buf;
