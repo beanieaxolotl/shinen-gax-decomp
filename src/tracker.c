@@ -1,10 +1,41 @@
 #include "gax.h"
 #include "gax_internal.h"
 
-// to do
-u8 GAXTracker_generate_audio(GAX_channel *ch, GAX_player* replayer, u32 unk, u32 flag) {
 
-}
+// constants
+
+// vibrato table
+const s8 GAX_vibtable[64] = {
+
+    // 64-entry sine wave table
+
+       0,   12,   24,   37, 
+      48,   60,   70,   80, 
+      90,   98,  106,  112,
+     117,  122,  125,  126,
+     127,  126,  125,  122,
+     117,  112,  106,   98,
+      90,   80,   70,   60,
+      48,   37,   24,   12,
+       0,  -12,  -24,  -37, 
+     -48,  -60,  -70,  -80, 
+     -90,  -98, -106, -112,
+    -117, -122, -125, -126,
+    -127, -126, -125, -122,
+    -117, -112, -106,  -98,
+     -90,  -80,  -70,  -60,
+     -48,  -37,  -24,  -12
+
+};
+
+// frequency table
+const u32 GAX_freqtable[384] = {
+    // to do
+};
+
+
+// to do
+u8 GAXTracker_generate_audio(GAX_channel *ch, GAX_player* replayer, u32 unk, u32 flag) {}
 
 // u32 GAXTracker_open
 // https://decomp.me/scratch/7tzcx - AArt1256, beanieaxolotl

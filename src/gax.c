@@ -16,6 +16,7 @@ extern u8 GAXTracker_asm_end[];
 extern u8 GAXTracker_pingpong_asm[];
 extern u8 GAXTracker_pingpong_asm_end[];
 
+
 // constants
 
 // the copyright string for the sound driver
@@ -51,35 +52,6 @@ const char GAX_font[281] = {
 // Should be BIOS Huffman compressed font.
 // Header: 0x0004A028 -> Type=Huff(2), Unit=8-bit, DecompressedSize=1184 bytes.
 // Following data for tree: size byte 0x11 -> 18 bytes of tree data following then the compressed font glyphs of 37 tiles of 4bpp, 8x8 font data (A-Z, 0-9, space) 32 bytes each.
-};
-
-// vibrato table
-const s8 GAX_vibtable[64] = {
-
-    // 64-entry sine wave table
-
-       0,   12,   24,   37, 
-      48,   60,   70,   80, 
-      90,   98,  106,  112,
-     117,  122,  125,  126,
-     127,  126,  125,  122,
-     117,  112,  106,   98,
-      90,   80,   70,   60,
-      48,   37,   24,   12,
-       0,  -12,  -24,  -37, 
-     -48,  -60,  -70,  -80, 
-     -90,  -98, -106, -112,
-    -117, -122, -125, -126,
-    -127, -126, -125, -122,
-    -117, -112, -106,  -98,
-     -90,  -80,  -70,  -60,
-     -48,  -37,  -24,  -12
-
-};
-
-// frequency table
-const u32 GAX_freqtable[384] = {
-    // to do
 };
 
 
@@ -123,7 +95,8 @@ void GAX2_init_song() {}
 // https://decomp.me/scratch/nNgcv - beanieaxolotl, christianttt
 // accuracy -> 100%
 
-void GAX2_init_soundhw(void) {
+void GAX2_init_soundhw() {
+
     int i;
 
     if (GAX_ram->dma2cnt_unk != 0)
@@ -157,6 +130,7 @@ void GAX2_init_soundhw(void) {
     REG_SOUNDBIAS_H = 0x42;
     REG_DMA1DAD = REG_ADDR_FIFO_A;
     REG_DMA1SAD = (u32)GAX_ram->dma1sad_unk;
+
 }
 
 // void GAX2_init_volboost
@@ -174,7 +148,6 @@ void GAX2_init_volboost() {
 
     volume = (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->volume;
 
-    // this may use inlining
     if (volume >= 512) {
         GAX_ram->volboost_level = 2;
         tracker_asm = GAX_ram->gax_tracker_asm;
@@ -618,7 +591,126 @@ void GAX_irq() {
     
 }
 
-void GAX_play() {}
+// void GAX_play
+// https://decomp.me/scratch/19lBk - beanieaxolotl
+// accuracy -> 90.14%
+
+void GAX_play() {
+
+    int iVar1;
+    u32 uVar2;
+    u32 uVar3;
+
+    GAX_playback_buffer **buffer_header;
+    GAXChannelInfo* dest;
+    u32 size;
+    u32 src;
+    
+    if (GAX_ram->irq_state != 0) {
+        
+        dest = GAX_ram->params->channel_info;
+        
+        if (dest != NULL) {
+            size = 64;
+
+            // the same as GAX_clear_mem.
+            // this could be an alternate version
+            // of this function but inlined.
+            // https://decomp.me/scratch/yf3Sy
+            
+            while ((u32)dest & 3) {
+                dest->instrument = 0;
+                dest++, size--;
+            }
+        
+            src   = 0;
+            uVar3 = size & -32;
+            uVar2 = uVar3;
+            
+            if ((int)uVar3 < 0) {
+                uVar2 = uVar3 + 3;
+            }
+            
+            CpuFastSet(&src, dest, (uVar2 << 9) >> 0xB | 1 << 24);            
+           
+            dest += uVar3;
+            iVar1 = size - uVar3;
+            
+            if (iVar1 > 0) {
+                while (iVar1 != 0) {
+                    dest->instrument = 0;
+                    dest++, iVar1--;
+                }
+            }
+        }
+
+        // apply user-defined params 
+
+        // apply user volume
+        if (GAX_ram->params->volume > 0xFF) {
+            // correct volume param into maximum range
+            GAX_ram->params->volume = 0xFF;
+        }
+        (&GAX_ram->replayer)[GAX_ram->unk20]->global_volume = GAX_ram->params->volume;
+
+        // apply lowpass filter
+        GAX_ram->filt_depth = GAX_ram->params->filter_depth;
+
+        
+        // start playing + processing
+        (&GAX_ram->replayer)[GAX_ram->unk20]->is_playing = TRUE;
+        if (GAX_ram->playback_state == 0) {
+            // process one tick of audio (~1/60th of a second)
+            GAXSync_render((&GAX_ram->replayer)[GAX_ram->unk20],
+                          (&GAX_ram->replayer)[GAX_ram->unk20]->timer);
+        }
+        // buffer handling
+        if (GAX_ram->buf_header_dma2 != NULL) {
+            // stream audio from DMA 1 and DMA 2
+            GAX_ram->buf_id = 1;
+            buffer_header = &GAX_ram->buf_header_dma1;
+            GAX_ram->current_buf = *buffer_header;
+            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->unk20],
+                            ((int)GAX_ram->buffer_dma1 +
+                            GAX_ram->buffer_unk * (*buffer_header)->timer_reload));            
+            GAX_ram->buf_id = 2;
+            buffer_header = &GAX_ram->buf_header_dma2;
+            GAX_ram->current_buf = *buffer_header;
+            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->unk20],
+                            ((int)GAX_ram->buffer_dma2 +
+                            GAX_ram->buffer_unk * (*buffer_header)->timer_reload));            
+        } else {
+            // stream audio from DMA 1
+            GAX_ram->buf_id = 0;
+            buffer_header = &GAX_ram->buf_header_dma1;
+            GAX_ram->current_buf = *buffer_header;
+            // to do: warning: passing arg 1 of `GAXOutput_stream' from incompatible pointer type
+            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->unk20],
+                            ((int)GAX_ram->buffer_dma1 +
+                            GAX_ram->buffer_unk * (*buffer_header)->timer_reload));
+        }
+        
+        (&GAX_ram->replayer)[GAX_ram->unk20]->timer++;
+        GAX_ram->buffer_unk ^= 1;
+
+        // check for the end of the song or jingle
+        // GAX_player's is_song_end should probably be "songend"
+        // as that is what the GAX help doc refers it to:
+        /*
+            "Check this member during playback to find out whether songend has 
+            been reached or whether the song has looped."
+        */
+        GAX_ram->params->is_songend = (&GAX_ram->replayer)[GAX_ram->unk20]->is_song_end;
+        if (GAX_ram->unk20 == 1 && GAX_ram->params->is_songend) {
+            GAX_ram->unk20 = 0;
+            GAX_ram->params->is_jingleend = TRUE;
+            GAX2_init_volboost();
+        }
+        GAX_ram->irq_finished = TRUE;
+        
+    }
+    
+}
 
 // void GAX_pause
 // https://decomp.me/scratch/zama3 - beanieaxolotl
