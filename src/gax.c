@@ -77,8 +77,8 @@ const s8 GAX_vibtable[64] = {
 
 };
 
-// frequency period table
-const u32 GAX_periodtable[384] = {
+// frequency table
+const u32 GAX_freqtable[384] = {
     // to do
 };
 
