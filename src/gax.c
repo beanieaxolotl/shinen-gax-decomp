@@ -64,22 +64,22 @@ void GAX_open() {
     int i;
     int offset;
     
-    GAXOutput_open((&GAX_ram->replayer)[GAX_ram->unk20]); // reset timer
-    GAX_ram->current_buf = GAX_ram->buf_header_dma1;      // default to using the DMA1 buffer
+    GAXOutput_open((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]); // reset timer
+    GAX_ram->current_buf = GAX_ram->buf_header_dma1;              // default to using the DMA1 buffer
 
-    if ((&GAX_ram->replayer)[GAX_ram->unk20]->song_2->num_channels) {
-        for (i = 0; i < (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->num_channels; i++) {
+    if ((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels) {
+        for (i = 0; i < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
             // reset the channel for playback
-            GAXTracker_open((GAX_channel*)(&(&GAX_ram->replayer)[GAX_ram->unk20]->channels->ignore + offset));
+            GAXTracker_open((GAX_channel*)(&(&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels->ignore + offset));
             // load the data for the song's first order
-            *(u32*)(&(&GAX_ram->replayer)[GAX_ram->unk20]->channels->order + offset) 
-              = *(u32*)((&GAX_ram->replayer)[GAX_ram->unk20]->song_2->track_data + i * 4 + 3);
+            *(u32*)(&(&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels->order + offset) 
+              = *(u32*)((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->track_data + i * 4 + 3);
             offset += sizeof(GAX_channel);
         }
     }
 
-    GAXSync_open((&GAX_ram->replayer)[GAX_ram->unk20]); // set up replayer variables
-    (&GAX_ram->replayer)[GAX_ram->unk20]->song = (&GAX_ram->replayer)[GAX_ram->unk20]->song_2;
+    GAXSync_open((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]); // set up replayer variables
+    (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song = (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2;
 
     if (GAX_ram->params->flags & GAX_SPEECH) {
         // if the user enabled the GAX_SPEECH flag (voice playback)
@@ -146,7 +146,7 @@ void GAX2_init_volboost() {
     int iVar2;
     u16 uVar3;
 
-    volume = (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->volume;
+    volume = (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->volume;
 
     if (volume >= 512) {
         GAX_ram->volboost_level = 2;
@@ -651,18 +651,18 @@ void GAX_play() {
             // correct volume param into maximum range
             GAX_ram->params->volume = 0xFF;
         }
-        (&GAX_ram->replayer)[GAX_ram->unk20]->global_volume = GAX_ram->params->volume;
+        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->global_volume = GAX_ram->params->volume;
 
         // apply lowpass filter
         GAX_ram->filt_depth = GAX_ram->params->filter_depth;
 
         
         // start playing + processing
-        (&GAX_ram->replayer)[GAX_ram->unk20]->is_playing = TRUE;
+        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->is_playing = TRUE;
         if (GAX_ram->playback_state == 0) {
             // process one tick of audio (~1/60th of a second)
-            GAXSync_render((&GAX_ram->replayer)[GAX_ram->unk20],
-                          (&GAX_ram->replayer)[GAX_ram->unk20]->timer);
+            GAXSync_render((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
+                          (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->timer);
         }
         // buffer handling
         if (GAX_ram->buf_header_dma2 != NULL) {
@@ -670,13 +670,13 @@ void GAX_play() {
             GAX_ram->buf_id = 1;
             buffer_header = &GAX_ram->buf_header_dma1;
             GAX_ram->current_buf = *buffer_header;
-            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->unk20],
+            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
                             ((int)GAX_ram->buffer_dma1 +
                             GAX_ram->buffer_unk * (*buffer_header)->timer_reload));            
             GAX_ram->buf_id = 2;
             buffer_header = &GAX_ram->buf_header_dma2;
             GAX_ram->current_buf = *buffer_header;
-            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->unk20],
+            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
                             ((int)GAX_ram->buffer_dma2 +
                             GAX_ram->buffer_unk * (*buffer_header)->timer_reload));            
         } else {
@@ -684,25 +684,18 @@ void GAX_play() {
             GAX_ram->buf_id = 0;
             buffer_header = &GAX_ram->buf_header_dma1;
             GAX_ram->current_buf = *buffer_header;
-            // to do: warning: passing arg 1 of `GAXOutput_stream' from incompatible pointer type
-            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->unk20],
+            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
                             ((int)GAX_ram->buffer_dma1 +
                             GAX_ram->buffer_unk * (*buffer_header)->timer_reload));
         }
         
-        (&GAX_ram->replayer)[GAX_ram->unk20]->timer++;
+        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->timer++;
         GAX_ram->buffer_unk ^= 1;
 
         // check for the end of the song or jingle
-        // GAX_player's is_song_end should probably be "songend"
-        // as that is what the GAX help doc refers it to:
-        /*
-            "Check this member during playback to find out whether songend has 
-            been reached or whether the song has looped."
-        */
-        GAX_ram->params->is_songend = (&GAX_ram->replayer)[GAX_ram->unk20]->is_song_end;
-        if (GAX_ram->unk20 == 1 && GAX_ram->params->is_songend) {
-            GAX_ram->unk20 = 0;
+        GAX_ram->params->is_songend = (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->songend;
+        if (GAX_ram->mix_buffer_id == 1 && GAX_ram->params->is_songend) {
+            GAX_ram->mix_buffer_id = 0;
             GAX_ram->params->is_jingleend = TRUE;
             GAX2_init_volboost();
         }
@@ -1086,11 +1079,11 @@ void GAX_set_music_volume(s32 ch, u32 vol) {
     if (ch == -1) {
         // set all of the channel volumes to the user-defined volume
         for (i = 0; i < GAX_ram->replayer->song->num_channels; i++) {
-            (&GAX_ram->replayer)[GAX_ram->unk20]->channels[i].mixing_volume = vol;
+            (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels[i].mixing_volume = vol;
         }
     } else if (ch > -2 && 
-               ch < (&GAX_ram->replayer)[GAX_ram->unk20]->song_2->num_channels) {
-        (&GAX_ram->replayer)[GAX_ram->unk20]->channels[ch].mixing_volume = vol;
+               ch < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels) {
+        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels[ch].mixing_volume = vol;
     }
     
 }
@@ -1122,7 +1115,7 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
 
 void GAX_stop() {
 
-    (&GAX_ram->replayer)[GAX_ram->unk20]->is_playing = FALSE;
+    (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->is_playing = FALSE;
     
     GAX_ram->irq_state = 0;
     REG_SOUNDCNT_X     = 0; // turn Direct Sound off

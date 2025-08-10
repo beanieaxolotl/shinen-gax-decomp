@@ -12,8 +12,8 @@ void GAXSync_open(GAX_player* player) {
     player->is_playing    = FALSE; // not currently playing
     player->unknown_delay = 0;
 
-    player->stop_on_song_end = FALSE; // default: loop playback of music
-    player->is_song_end      = FALSE; // song has not ended yet!
+    player->stop_on_songend  = FALSE; // default: loop playback of music
+    player->songend          = FALSE; // song has not ended yet!
     
     player->pattern = -1;    // no pattern loaded
     player->step    = 20000; // no step loaded(?)
@@ -48,7 +48,7 @@ void GAXSync_render(GAX_player* player, int unk) {
         speed_buffer = player->speed_buf;
         speed_timer  = player->speed_timer;
         
-        if (speed_buffer == 0 || (!player->is_song_end, 
+        if (speed_buffer == 0 || (!player->songend, 
             player->speed_timer != 0, player->speed_timer <= 0)) {     
             
             // start of a step
@@ -80,12 +80,12 @@ void GAXSync_render(GAX_player* player, int unk) {
                 player->pattern++;
                 
                 if (song->song_length >= player->pattern) {
-                    if (player->stop_on_song_end) {
+                    if (player->stop_on_songend) {
                         player->is_playing = FALSE;
                         player->speed_buf  = 0;
                     }
-                    player->is_song_end = TRUE;
-                    player->pattern     = song->restart_position;
+                    player->songend = TRUE;
+                    player->pattern = song->restart_position;
                 } else {
                     player->pattern_finished = TRUE;
                 }
@@ -99,7 +99,7 @@ void GAXSync_render(GAX_player* player, int unk) {
         }
         
         if (player->speed_buf == 0) {
-            player->is_song_end = TRUE;
+            player->songend = TRUE;
         }
         
         player->timer_backup = unk;

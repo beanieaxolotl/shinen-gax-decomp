@@ -328,8 +328,8 @@ typedef struct GAX_player {
     b8  step_finished;
     b8  pattern_finished;
     u8  global_volume;
-    b8  stop_on_song_end;
-    b8  is_song_end;
+    b8  stop_on_songend;
+    b8  songend;
     b8  skip_pattern;
     b8  unk1B;
 
@@ -368,7 +368,7 @@ struct {
     // buffer properties / variables
 
     u8*                  unused1C;
-    u32                  unk20;
+    u32                  mix_buffer_id;
     GAX_playback_buffer* buf_header_dma1;
     GAX_playback_buffer* buf_header_dma2;
     GAX_playback_buffer* current_buf;
