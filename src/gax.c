@@ -1072,8 +1072,8 @@ void GAX_stop_fx(s32 fxch) {
 }
 
 // void GAX_set_music_volume
-// https://decomp.me/scratch/hTUjg - beanieaxolotl
-// accuracy -> 81.67%
+// https://decomp.me/scratch/1ub7u - beanieaxolotl
+// accuracy -> 86.53%
 
 void GAX_set_music_volume(s32 ch, u32 vol) {
     
@@ -1084,10 +1084,10 @@ void GAX_set_music_volume(s32 ch, u32 vol) {
     
     if (ch == -1) {
         // set all of the channel volumes to the user-defined volume
-        for (i = 0; i < GAX_ram->replayer->song->num_channels; i++) {
+        for (i = 0; i < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
             (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels[i].mixing_volume = vol;
         }
-    } else if (ch > -2 && 
+    } else if (ch > -1 && 
                ch < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels) {
         (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels[ch].mixing_volume = vol;
     }
