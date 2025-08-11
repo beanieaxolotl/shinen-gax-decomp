@@ -477,7 +477,7 @@ void GAX2_calc_mem(GAXParams* params) {
         GAX_open();
 
         // song resumes after jingle playback
-        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->stop_on_song_end = TRUE;
+        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->stop_on_songend = TRUE;
         GAX_ram->params->is_songend   = FALSE; 
         
         GAX_ram->params->is_jingleend = FALSE; // we just started the jingle
