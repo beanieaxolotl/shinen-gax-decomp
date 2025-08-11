@@ -402,8 +402,8 @@ void GAX2_calc_mem(GAXParams* params) {
   b8 GAX2_init(GAXParams* params) {}
 
 // b8 GAX2_jingle
-// https://decomp.me/scratch/qidkR - beanieaxolotl
-// accuracy -> 82.59%
+// https://decomp.me/scratch/OE4IV - beanieaxolotl, AnnoyedArt1256
+// accuracy -> 78.06%
 
   b8 GAX2_jingle(const void* jingle) {
 
@@ -414,11 +414,13 @@ void GAX2_calc_mem(GAXParams* params) {
 
     // identified variables
     u32 size;
-    u8* dest;
+    u32 dest;
     u32 src;
     
-    *dest, GAX_ram->unk80    = GAX_ram->unk78;
-    size,  GAX_ram->free_mem = GAX_ram->fxch_memsize;
+    dest           = (u32)GAX_ram->unk78;
+    GAX_ram->unk80 = (u32)GAX_ram->unk78;
+    
+    size, GAX_ram->free_mem = GAX_ram->fxch_memsize;
 
     if (GAX_ram->params->flags & GAX_NO_JINGLES) {
         
@@ -433,9 +435,13 @@ void GAX2_calc_mem(GAXParams* params) {
 
     } else {
 
-        // same as GAX_clear_mem? https://decomp.me/scratch/yf3Sy
+        // the same as GAX_clear_mem.
+        // this could be an alternate version
+        // of this function but inlined.
+        // https://decomp.me/scratch/yf3Sy
         
-        while ((u32)dest & 3) {
+        size = GAX_ram->free_mem;
+        while (dest & 3) {
             *(u8*)dest = 0;
             dest++, size--;
         }
@@ -448,19 +454,18 @@ void GAX2_calc_mem(GAXParams* params) {
             uVar2 = iVar1 + 3;
         }
         
-        CpuFastSet(&src, dest, 
+        CpuFastSet(&src, (void*)dest, 
                   (uVar2 << 9) >> 0xB | 1 << 24);
         
         dest += iVar1;
-
-        // to do: this looks awkward
-        for (iVar3; size-iVar1 != iVar3; iVar3--) {
-            *dest = 0;
-            dest++;
+        
+        for (iVar3 = size-iVar1; iVar3 != 0; iVar3--) {
+            *(u8*)(dest++) = 0;
         }
         
-        GAX_ram->irq_state = 0; // currently changing IRQs
-        *GAX_ram->unused20 = 1;
+        GAX_ram->irq_state     = 0; // currently changing IRQs
+        GAX_ram->mix_buffer_id = 1; // switch to buffer #1
+        
         REG_DMA1CNT_H = DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT;
         if (GAX_ram->buf_header_dma2) {
             REG_DMA2CNT_H = DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT;
@@ -471,9 +476,10 @@ void GAX2_calc_mem(GAXParams* params) {
                        DMA_ENABLE | DMA_DEST_FIXED | DMA_32BIT | DMA_REPEAT);
         GAX_open();
 
-        *(u8*)(GAX_ram->unk4C[(int)GAX_ram->unused20]) = 1;
+        // song resumes after jingle playback
+        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->stop_on_song_end = TRUE;
+        GAX_ram->params->is_songend   = FALSE; 
         
-        GAX_ram->params->is_songend   = FALSE; // song resumes after jingle playback
         GAX_ram->params->is_jingleend = FALSE; // we just started the jingle
         GAX_ram->playback_state       = 1;     // currently playing
         GAX_ram->irq_state            = 1;     // IRQs are final?
