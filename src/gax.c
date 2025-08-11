@@ -27,9 +27,13 @@ extern u8 GAXTracker_pingpong_asm_end[];
 #endif
 
 // mixing rate / timer reload value table
-const u16 GAX_table[9*2] = {
+const u16 GAX_table[13*2] = {
 
      5735, 2926,
+     9079, 1848,
+    10513, 1596,
+    11469, 1463,
+    13380, 1254,
     15769, 1064,
     18158,  924,
     21025,  798,
