@@ -17,7 +17,7 @@ void GAXOutput_render() {
 // https://decomp.me/scratch/3NNLq - beanieaxolotl
 // accuracy -> 85.47%
 
-void GAXOutput_stream(GAX_channel* ch, u32 dest) {
+void GAXOutput_stream(GAX_player* player, u32 dest) {
     
     u32   dc_val;
     void* buf;
@@ -31,7 +31,7 @@ void GAXOutput_stream(GAX_channel* ch, u32 dest) {
     
     GAX_clear_mem((u32)GAX_ram->mix_buffer, size*2);
     
-    if (GAXOutput_render(ch)) {
+    if (GAXOutput_render(player)) {
         buf    = GAX_ram->mix_buffer;
         dc_val = GAX_ram->dc_correction_val;
         _call_via_r1(&buf, GAX_ram->render_asm);   
