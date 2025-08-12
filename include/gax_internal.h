@@ -11,16 +11,6 @@
 #define MAX_WAVES       4
 
 
-// constants
-
-static const char* GAX_copyright;
-static const u16 GAX_table[];
-static const u8 gax_default_package[];
-static const char GAX_font[281];       // to do: data needs to be documented!
-static const s8 GAX_vibtable[64];
-static const u32 GAX_periodtable[384];
-
-
 // enums //
 
 enum perfstep_command {
