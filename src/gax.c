@@ -157,8 +157,8 @@ void GAX2_init_volboost() {
         tracker_asm = GAX_ram->gax_tracker_asm;
         *(u16*)(tracker_asm+0xD0) = 0x90AB;
         *(u16*)(tracker_asm+0x54) = 0x90AB;
-        iVar2 = tracker_asm + 0x54;
-        iVar1 = tracker_asm + 0xD0;
+        iVar2 = (int)tracker_asm + 0x54;
+        iVar1 = (int)tracker_asm + 0xD0;
         uVar3 = 0xA0A8;        
     } else {
         if (volume >= 256) {
@@ -166,16 +166,16 @@ void GAX2_init_volboost() {
             tracker_asm = GAX_ram->gax_tracker_asm;
             *(u16*)(tracker_asm+0xD0) = 0x912B;
             *(u16*)(tracker_asm+0x54) = 0x912B;
-            iVar2 = tracker_asm + 0x54;
-            iVar1 = tracker_asm + 0xD0; 
+            iVar2 = (int)tracker_asm + 0x54;
+            iVar1 = (int)tracker_asm + 0xD0; 
             uVar3 = 0xA128;
         } else {
             GAX_ram->volboost_level = 0;
             tracker_asm = GAX_ram->gax_tracker_asm;
             *(u16*)(tracker_asm+0xD0) = 0x91AB;
             *(u16*)(tracker_asm+0x54) = 0x91AB;
-            iVar2 = tracker_asm + 0x54;
-            iVar1 = tracker_asm + 0xD0; 
+            iVar2 = (int)tracker_asm + 0x54;
+            iVar1 = (int)tracker_asm + 0xD0; 
             uVar3 = 0xA1A8;
         }
     }

@@ -389,7 +389,7 @@ struct {
     u8  unk5B;
     u8  unk5C;
     b8  irq_finished;
-    b8  unk5E;
+    u8  buf_id;
     u8  unk5F;
 
     // asm code
@@ -398,9 +398,10 @@ struct {
     void* gax_tracker_asm_end;
     void* render_asm;
     void* gax_output_render_asm_end;
-    u32   gax_filt;
 
-    u16   unk74;
+    u32   gax_filt;
+    u16   filt_depth;
+
     u16   dc_correction_val;
     void* unk78;
     u32   fxch_memsize;
