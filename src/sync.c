@@ -31,7 +31,7 @@ void GAXSync_open(GAX_player* player) {
 }
 
 // void GAXSync_render
-// https://decomp.me/scratch/QBX05 - beanieaxolotl
+// https://decomp.me/scratch/x7Gje - beanieaxolotl
 // accuracy -> 94.12%
 
 u32 GAXSync_render(GAX_player* player, int unk) {
