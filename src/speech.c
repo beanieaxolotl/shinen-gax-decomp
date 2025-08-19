@@ -1,5 +1,20 @@
 #include "gax.h"
 
+// constants
+
+const s16 speech_FAC[8] = {
+
+    18431, 20479, 22527, 24575,
+    26623, 28671, 30719, 32767
+
+};
+
+const s16 speech_QLB[4] = {
+
+    3277, 11469, 21299, 32767
+
+};
+
 
 void GAXSpeech_internal0() {
 
