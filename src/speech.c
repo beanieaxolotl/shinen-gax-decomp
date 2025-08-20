@@ -1,9 +1,12 @@
 #include "gax.h"
 
-// constants
+
+// GSM 6.10 tables
+// sourced from libgsm, https://quut.com/gsm/
 
 const s16 speech_FAC[8] = {
 
+    // normalized direct mantissa used to compute xM/xmax
     18431, 20479, 22527, 24575,
     26623, 28671, 30719, 32767
 
@@ -11,6 +14,7 @@ const s16 speech_FAC[8] = {
 
 const s16 speech_QLB[4] = {
 
+    // quantization levels of LTP gain quantizer 
     3277, 11469, 21299, 32767
 
 };
