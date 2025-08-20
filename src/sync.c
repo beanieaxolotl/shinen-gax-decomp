@@ -32,7 +32,7 @@ void GAXSync_open(GAX_player* player) {
 
 // void GAXSync_render
 // https://decomp.me/scratch/x7Gje - beanieaxolotl
-// accuracy -> 94.12%
+// accuracy -> 94.78%
 
 u32 GAXSync_render(GAX_player* player, int unk) {
 
@@ -44,11 +44,10 @@ u32 GAXSync_render(GAX_player* player, int unk) {
     
     if (player->timer_backup != unk && player->is_playing) {
 
-        speed_timer  = player->speed_timer;
         speed_buffer = player->speed_buf;
+        speed_timer  = player->speed_timer;
 
-        // todo: if-statement is incorrect
-        if ((u8)player->speed_buf == 0 || (!player->songend, player->speed_timer <= 0)) {     
+        if ((u8)player->speed_buf != 0 && (player->songend = FALSE, speed_timer << 0x18 <= 0)) {
             
             // start of a step
             if (player->skip_pattern) {
@@ -71,7 +70,7 @@ u32 GAXSync_render(GAX_player* player, int unk) {
             new_speed = GAX_ram->params->speed_adjust + ((u8)player->speed_buf-1);
             player->speed_timer = GAX_CLAMP(new_speed, 0, new_speed);
             
-            if ((s16)player->step >= player->song->step_count) {
+            if (player->step >= player->song->step_count) {
                 // if there are no more steps to process
                 player->step             = 0;    // restart from step #0
                 player->new_step_idx     = 0;    // same here
@@ -116,7 +115,7 @@ u32 GAXSync_render(GAX_player* player, int unk) {
         }
         
     }
-    
+
     return 0;
 
 }

@@ -309,7 +309,7 @@ typedef struct GAX_player {
     u32 timer_backup;
     u32 unk0;
     u16 pattern;
-    u16 step;
+    s16 step;
 
     u16 speed_buf;
     b8  is_playing;
