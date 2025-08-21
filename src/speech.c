@@ -25,47 +25,45 @@ void GAXSpeech_internal0() {
 }
 
 // void GAXSpeech_internal1
-// https://decomp.me/scratch/ALcRA - beanieaxolotl
-// accuracy -> 84.15%
+// https://decomp.me/scratch/yqNKI - beanieaxolotl
+// accuracy -> 96.69%
 
-void GAXSpeech_internal1(s16* param1) {
+void GAXSpeech_internal1(s16* lar_p) {
+
+    // implementation of LARp_to_rp
+    // https://github.com/timothytylee/libgsm/blob/master/src/short_term.c#L144
     
     int i;
-    s16 sVar1, iVar2;
+    s16 temp;
     
-    for (i = 7; i > -1; i--) {
+    for (i = 1; i <= 8; i++, lar_p++) {
         
-        if (*param1 < 0) {
-            
-            if (*param1 == -32768) {
-                sVar1 = 32767;
-            } else {
-                sVar1 = -*param1;
-            }
+        if (*lar_p < 0) {
 
-            if (sVar1 < 0x2B33) {
-                sVar1 *= -2;
-            } else if (sVar1 < 0x4E66) {
-                sVar1 = -(sVar1 + 0x2B33);
+            temp = *lar_p == -32768 ? 32767 : -*lar_p;
+
+            if (temp < 11059) {
+                temp = -(temp << 1);
+            } else if (temp < 20070) {
+                temp = -(temp + 11059);
             } else {
-                sVar1 = -((sVar1 >> 2) + 0x6600);
+                temp = -((temp >> 2) + 26112);
             }
             
         } else {
 
-            sVar1 = *param1;
-            iVar2 = sVar1;
-            if (iVar2 < 0x2B33) {
-                sVar1 = iVar2<<1;
-            } else if (iVar2 < 0x4E66) {
-                sVar1 += 0x2B33;
+            temp = *lar_p;
+            
+            if (temp < 11059) {
+                temp <<= 1;
+            } else if (temp < 20070) {
+                temp += 11059;
             } else {
-                sVar1 = (sVar1>>2)+0x6600;
+                temp = (temp>>2) + 26112;
             }
         }
         
-        *param1 = sVar1;
-        *param1++;
+        *lar_p = temp;
         
     }
     
