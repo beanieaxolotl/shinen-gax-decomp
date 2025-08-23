@@ -34,39 +34,47 @@ void GAXSpeech_internal1(s16* lar_p) {
     // https://github.com/timothytylee/libgsm/blob/master/src/short_term.c#L144
     
     int i;
-    s16 temp;
-    
+    s16 temp; // absolute value of the input
+
     for (i = 1; i <= 8; i++, lar_p++) {
         
         if (*lar_p < 0) {
-
-            temp = *lar_p == -32768 ? 32767 : -*lar_p;
+            
+            temp = (*lar_p == -32768) ? 32767 : -(*lar_p);
 
             if (temp < 11059) {
-                temp = -(temp << 1);
+				
+                *lar_p = -(temp << 1);
+				
             } else if (temp < 20070) {
-                temp = -(temp + 11059);
+				
+                *lar_p = -(temp + 11059);
+				
             } else {
-                temp = -((temp >> 2) + 26112);
+                
+				*lar_p = -((temp >> 2) + 26112);
+				
             }
-            
+
         } else {
 
             temp = *lar_p;
             
             if (temp < 11059) {
-                temp <<= 1;
+				
+                *lar_p = temp << 1;
+				
             } else if (temp < 20070) {
-                temp += 11059;
+				
+                *lar_p = temp + 11059;
+				
             } else {
-                temp = (temp>>2) + 26112;
+				
+                *lar_p = (temp >> 2) + 26112;
+				
             }
         }
-        
-        *lar_p = temp;
-        
     }
-    
 }
 
 void GAXSpeech_internal3() {
