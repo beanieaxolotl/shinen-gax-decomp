@@ -52,8 +52,7 @@ const u8 gax_default_package[200] = {
 
 // assertion screen font
 const char GAX_font[281] = {
-// Don't think it's LZ77:
-// Should be BIOS Huffman compressed font.
+// BIOS Huffman compressed font.
 // Header: 0x0004A028 -> Type=Huff(2), Unit=8-bit, DecompressedSize=1184 bytes.
 // Following data for tree: size byte 0x11 -> 18 bytes of tree data following then the compressed font glyphs of 37 tiles of 4bpp, 8x8 font data (A-Z, 0-9, space) 32 bytes each.
 };
@@ -61,29 +60,29 @@ const char GAX_font[281] = {
 
 // void GAX_open
 // https://decomp.me/scratch/sH7lJ - beanieaxolotl
-// accuracy -> 65.86
+// accuracy -> 77.93%
 
 void GAX_open() {
 
     int i;
     int offset;
     
-    GAXOutput_open((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]); // reset timer
-    GAX_ram->current_buf = GAX_ram->buf_header_dma1;              // default to using the DMA1 buffer
+    GAXOutput_open(GAX_ram->replayer[GAX_ram->mix_buffer_id]); // reset timer
+    GAX_ram->current_buf = GAX_ram->buf_header_dma1;           // default to using the DMA1 buffer
 
-    if ((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels) {
-        for (i = 0; i < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
+    if (GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels) {
+        for (i = 0; i < GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
             // reset the channel for playback
-            GAXTracker_open((GAX_channel*)(&(&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels->ignore + offset));
+            GAXTracker_open((GAX_channel*)(&GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels->ignore + offset));
             // load the data for the song's first order
-            *(u32*)(&(&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels->order + offset) 
-              = *(u32*)((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->track_data + i * 4 + 3);
+            *(u32*)(&GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels->order + offset) 
+              = *(u32*)(GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->track_data + i * 4 + 3);
             offset += sizeof(GAX_channel);
         }
     }
 
-    GAXSync_open((&GAX_ram->replayer)[GAX_ram->mix_buffer_id]); // set up replayer variables
-    (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song = (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2;
+    GAXSync_open(GAX_ram->replayer[GAX_ram->mix_buffer_id]); // set up replayer variables
+    GAX_ram->replayer[GAX_ram->mix_buffer_id]->song = GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2;
 
     if (GAX_ram->params->flags & GAX_SPEECH) {
         // if the user enabled the GAX_SPEECH flag (voice playback)
@@ -139,7 +138,7 @@ void GAX2_init_soundhw() {
 
 // void GAX2_init_volboost
 // https://decomp.me/scratch/qDGXO - beanieaxolotl
-// accuracy -> 33.68%
+// accuracy -> 38.09%
 
 void GAX2_init_volboost() {
     
@@ -150,7 +149,7 @@ void GAX2_init_volboost() {
     int iVar2;
     u16 uVar3;
 
-    volume = (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->volume;
+    volume = GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->volume;
 
     if (volume >= 512) {
         GAX_ram->volboost_level = 2;
@@ -255,12 +254,12 @@ void GAX2_new(GAXParams* params) {
     }
     
     
-    params->mixing_rate = -1;
+    params->mixing_rate    = -1;
     params->fx_mixing_rate = -1;
-    params->filter_depth = 0;
-    params->fx_channels = -1;
-    params->volume = -1;
-    params->debug = TRUE;
+    params->filter_depth   =  0;
+    params->fx_channels    = -1;
+    params->volume         = -1;
+    params->debug          = TRUE;
 
 }
 
@@ -407,7 +406,7 @@ void GAX2_calc_mem(GAXParams* params) {
 
 // b8 GAX2_jingle
 // https://decomp.me/scratch/OE4IV - beanieaxolotl, AnnoyedArt1256
-// accuracy -> 78.06%
+// accuracy -> 80.07%
 
   b8 GAX2_jingle(const void* jingle) {
 
@@ -481,7 +480,7 @@ void GAX2_calc_mem(GAXParams* params) {
         GAX_open();
 
         // song resumes after jingle playback
-        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->stop_on_songend = TRUE;
+        GAX_ram->replayer[GAX_ram->mix_buffer_id]->stop_on_songend = TRUE;
         GAX_ram->params->is_songend   = FALSE; 
         
         GAX_ram->params->is_jingleend = FALSE; // we just started the jingle
@@ -603,7 +602,7 @@ void GAX_irq() {
 
 // void GAX_play
 // https://decomp.me/scratch/19lBk - beanieaxolotl
-// accuracy -> 90.14%
+// accuracy -> 97.74%
 
 void GAX_play() {
 
@@ -661,18 +660,18 @@ void GAX_play() {
             // correct volume param into maximum range
             GAX_ram->params->volume = 0xFF;
         }
-        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->global_volume = GAX_ram->params->volume;
+        GAX_ram->replayer[GAX_ram->mix_buffer_id]->global_volume = GAX_ram->params->volume;
 
         // apply lowpass filter
         GAX_ram->filt_depth = GAX_ram->params->filter_depth;
 
         
         // start playing + processing
-        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->is_playing = TRUE;
+        GAX_ram->replayer[GAX_ram->mix_buffer_id]->is_playing = TRUE;
         if (GAX_ram->playback_state == 0) {
             // process one tick of audio (~1/60th of a second)
-            GAXSync_render((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
-                          (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->timer);
+            GAXSync_render(GAX_ram->replayer[GAX_ram->mix_buffer_id],
+                          GAX_ram->replayer[GAX_ram->mix_buffer_id]->timer);
         }
         // buffer handling
         if (GAX_ram->buf_header_dma2 != NULL) {
@@ -680,13 +679,13 @@ void GAX_play() {
             GAX_ram->buf_id = 1;
             buffer_header = &GAX_ram->buf_header_dma1;
             GAX_ram->current_buf = *buffer_header;
-            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
+            GAXOutput_stream(GAX_ram->replayer[GAX_ram->mix_buffer_id],
                             ((int)GAX_ram->buffer_dma1 +
                             GAX_ram->buffer_unk * (*buffer_header)->timer_reload));            
             GAX_ram->buf_id = 2;
             buffer_header = &GAX_ram->buf_header_dma2;
             GAX_ram->current_buf = *buffer_header;
-            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
+            GAXOutput_stream(GAX_ram->replayer[GAX_ram->mix_buffer_id],
                             ((int)GAX_ram->buffer_dma2 +
                             GAX_ram->buffer_unk * (*buffer_header)->timer_reload));            
         } else {
@@ -694,16 +693,16 @@ void GAX_play() {
             GAX_ram->buf_id = 0;
             buffer_header = &GAX_ram->buf_header_dma1;
             GAX_ram->current_buf = *buffer_header;
-            GAXOutput_stream((&GAX_ram->replayer)[GAX_ram->mix_buffer_id],
+            GAXOutput_stream(GAX_ram->replayer[GAX_ram->mix_buffer_id],
                             ((int)GAX_ram->buffer_dma1 +
                             GAX_ram->buffer_unk * (*buffer_header)->timer_reload));
         }
         
-        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->timer++;
+        GAX_ram->replayer[GAX_ram->mix_buffer_id]->timer++;
         GAX_ram->buffer_unk ^= 1;
 
         // check for the end of the song or jingle
-        GAX_ram->params->is_songend = (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->songend;
+        GAX_ram->params->is_songend = GAX_ram->replayer[GAX_ram->mix_buffer_id]->songend;
         if (GAX_ram->mix_buffer_id == 1 && GAX_ram->params->is_songend) {
             GAX_ram->mix_buffer_id = 0;
             GAX_ram->params->is_jingleend = TRUE;
@@ -1076,26 +1075,31 @@ void GAX_stop_fx(s32 fxch) {
 }
 
 // void GAX_set_music_volume
-// https://decomp.me/scratch/1ub7u - beanieaxolotl
-// accuracy -> 89.38%
+// https://decomp.me/scratch/byo7l - beanieaxolotl, christianttt
+// accuracy -> 100%
 
 void GAX_set_music_volume(s32 ch, u32 vol) {
-    
+
     int i;
 
-    // clamp volume into 8-bit range
+    // Clamp volume into 8-bit range
     vol = GAX_CLAMP(vol, 0, 255);
     
+    // Note: The expression GAX_ram->replayer[GAX_ram->mix_buffer_id]
+    // is intentionally repeated to match the original compiler's inefficient code generation.
+    
     if (ch == -1) {
-        // set all of the channel volumes to the user-defined volume
-        for (i = 0; i < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
-            (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels[i].mixing_volume = vol;
+        // Access num_channels using the full expression
+        for (i = 0; i < GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
+            // Access channels using the full expression again
+            GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels[i].mixing_volume = vol;
         }
     } else if (ch > -2 && 
-               ch < (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->song_2->num_channels) {
-        (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->channels[ch].mixing_volume = vol;
+               ch < GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels) { // Full expression here...
+        // ...and again here.
+        GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels[ch].mixing_volume = vol;
     }
-    
+
 }
 
 // void GAX_set_fx_volume
@@ -1121,11 +1125,11 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
 
 // void GAX_stop
 // https://decomp.me/scratch/G5819 - beanieaxolotl
-// accuracy -> 61.76%
+// accuracy -> 66.20%
 
 void GAX_stop() {
 
-    (&GAX_ram->replayer)[GAX_ram->mix_buffer_id]->is_playing = FALSE;
+    GAX_ram->replayer[GAX_ram->mix_buffer_id]->is_playing = FALSE;
     
     GAX_ram->irq_state = 0;
     REG_SOUNDCNT_X     = 0; // turn Direct Sound off

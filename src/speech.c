@@ -1,5 +1,6 @@
 #include "gax.h"
 
+
 // Put in gsm header file to #include later
 #define MIN_WORD -32768
 #define MAX_WORD 32767
@@ -12,6 +13,8 @@
     temp1    = GSM_SUB( temp1, B_TIMES_TWO );	\
     temp1    = GSM_MULT_R( INVA, temp1 );		\
     *LARpp++ = GSM_ADD( temp1, temp1 );
+
+
 // GSM 6.10 tables
 // sourced from libgsm, https://quut.com/gsm/
 
@@ -30,6 +33,10 @@ const s16 speech_QLB[4] = {
 
 };
 
+
+// void GAXSpeech_internal0
+// https://decomp.me/scratch/ZjU9Y - beanieaxolotl, christianttt
+// accuracy -> 100%
 
 void GAXSpeech_internal0(s16* LARc, s16* LARpp) {
 
@@ -52,8 +59,8 @@ void GAXSpeech_internal0(s16* LARc, s16* LARpp) {
 }
 
 // void GAXSpeech_internal1
-// https://decomp.me/scratch/yqNKI - beanieaxolotl
-// accuracy -> 96.69%
+// https://decomp.me/scratch/kUbtb - beanieaxolotl, christianttt
+// accuracy -> 100%
 
 void GAXSpeech_internal1(s16* LARp) {
 

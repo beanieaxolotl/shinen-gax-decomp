@@ -353,7 +353,7 @@ struct {
     GAX_FX_channel* fx_channels;
     u32             num_fx_channels;
     u32*            speech_unk;
-    GAX_player*     replayer;
+    GAX_player*     replayer[2];
 
     // buffer properties / variables
 
