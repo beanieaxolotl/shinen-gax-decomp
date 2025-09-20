@@ -357,7 +357,6 @@ struct {
 
     // buffer properties / variables
 
-    u8*                  unused1C;
     u32                  mix_buffer_id;
     GAX_playback_buffer* buf_header_dma1;
     GAX_playback_buffer* buf_header_dma2;

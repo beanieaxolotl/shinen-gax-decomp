@@ -60,7 +60,7 @@ const char GAX_font[281] = {
 
 // void GAX_open
 // https://decomp.me/scratch/sH7lJ - beanieaxolotl
-// accuracy -> 77.93%
+// accuracy -> 78.39%
 
 void GAX_open() {
 
