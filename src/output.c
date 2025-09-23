@@ -16,7 +16,7 @@ u8 GAXOutput_render(GAX_player* player) {
 
 // void GAXOutput_stream
 // https://decomp.me/scratch/dS50Z - christianttt, beanieaxolotl
-// accuracy -> 91.11%
+// accuracy -> 100%
 // ======================
 // formatting tweaks by beanieaxolotl
 
@@ -26,22 +26,19 @@ void GAXOutput_stream(GAX_player *player, void *dest) {
     
     size = GAX_ram->current_buf->timer_reload * GAX_ram->current_buf->update;
     GAX_ram->dc_correction_val = 0;
-    GAX_clear_mem(GAX_ram->mix_buffer, size * 2);
+    GAX_clear_mem(GAX_ram->mix_buffer, size << 1);
 
-    if (GAXOutput_render(player)) {
+    if (GAXOutput_render(player) << 0x18 != 0) {
         
-        // This is the C code that generates the target assembly.
-        RenderArgs args; // <-- This will generate `sub sp, #0x10`
-        
+        RenderArgs args;
         args.mix_buffer        = GAX_ram->mix_buffer;
         args.dest              = dest;
         args.size              = size;
         args.dc_correction_val = GAX_ram->dc_correction_val;
         
-        ((GAX_RenderFunc)GAX_ram->render_asm)(&args); // <-- This will generate the call
+        ((GAX_RenderFunc)GAX_ram->render_asm)(&args);
 
     } else {
         GAX_clear_mem(dest, size);
     }
-
 }
