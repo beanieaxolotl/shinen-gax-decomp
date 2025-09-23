@@ -1,4 +1,5 @@
 #include "gax.h"
+#include "gax_internal.h"
 
 
 // void GAXOutput_open
@@ -9,34 +10,38 @@ void GAXOutput_open(GAX_player* player) {
     player->timer = 1;
 }
 
-void GAXOutput_render() {
-
+u8 GAXOutput_render(GAX_player* player) {
+    
 }
 
 // void GAXOutput_stream
-// https://decomp.me/scratch/3NNLq - beanieaxolotl
-// accuracy -> 85.47%
+// https://decomp.me/scratch/dS50Z - christianttt, beanieaxolotl
+// accuracy -> 91.11%
+// ======================
+// formatting tweaks by beanieaxolotl
 
-void GAXOutput_stream(GAX_player* player, u32 dest) {
-    
-    u32   dc_val;
-    void* buf;
-    u32   size;
-    
-    //u32   temp;
-    //u32   mem_size;
+void GAXOutput_stream(GAX_player *player, void *dest) {
 
-    size = (GAX_ram->current_buf->timer_reload) * (GAX_ram->current_buf->update);
+    u32 size;
+    
+    size = GAX_ram->current_buf->timer_reload * GAX_ram->current_buf->update;
     GAX_ram->dc_correction_val = 0;
-    
-    GAX_clear_mem((u32)GAX_ram->mix_buffer, size*2);
-    
+    GAX_clear_mem(GAX_ram->mix_buffer, size * 2);
+
     if (GAXOutput_render(player)) {
-        buf    = GAX_ram->mix_buffer;
-        dc_val = GAX_ram->dc_correction_val;
-        _call_via_r1(&buf, GAX_ram->render_asm);   
+        
+        // This is the C code that generates the target assembly.
+        RenderArgs args; // <-- This will generate `sub sp, #0x10`
+        
+        args.mix_buffer        = GAX_ram->mix_buffer;
+        args.dest              = dest;
+        args.size              = size;
+        args.dc_correction_val = GAX_ram->dc_correction_val;
+        
+        ((GAX_RenderFunc)GAX_ram->render_asm)(&args); // <-- This will generate the call
+
     } else {
         GAX_clear_mem(dest, size);
     }
-    
+
 }

@@ -10,7 +10,6 @@
 #define MAX_FX_CHANNELS 8
 #define MAX_WAVES       4
 
-
 // enums //
 
 enum perfstep_command {
@@ -404,3 +403,12 @@ struct {
 
 }* GAX_ram;
 
+
+typedef struct RenderArgs {
+    void *mix_buffer;
+    void *dest;
+    u32   size;
+    u16   dc_correction_val;
+} RenderArgs;
+
+typedef void (*GAX_RenderFunc)(RenderArgs *);

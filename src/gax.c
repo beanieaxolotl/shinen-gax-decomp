@@ -97,17 +97,19 @@ void GAX2_init_song() {}
 // void GAX2_init_soundhw
 // https://decomp.me/scratch/nNgcv - beanieaxolotl, christianttt
 // accuracy -> 100%
+// ======================
+// edits by beanieaxolotl
 
 void GAX2_init_soundhw() {
 
     int i;
 
-    if (GAX_ram->dma2cnt_unk != 0)
-    {
-        REG_DMA1CNT = 4;
-        REG_DMA2CNT = 4;
+    if (GAX_ram->buf_header_dma2 != 0) {
+
+        REG_DMA1CNT    = 4;
+        REG_DMA2CNT    = 4;
         REG_SOUNDCNT_X = 0;
-        REG_SOUNDCNT_H = 0xFB0C; // GAX_SOUND_A_SETUP (SOUND_A_RIGHT_OUTPUT | SOUND_A_LEFT_OUTPUT | SOUND_A_FIFO_RESET | SOUND_A_MIX_FULL) #define for header later
+        REG_SOUNDCNT_H = 0xFB0C;
 
         for (i = 0; i < 8; i++)
         {
@@ -116,23 +118,23 @@ void GAX2_init_soundhw() {
         }
 
         REG_DMA2DAD = REG_ADDR_FIFO_B;
-        REG_DMA2SAD = (u32)GAX_ram->dma2sad;
-    }
-    else
-    {
-        REG_DMA1CNT = 4;
-        REG_SOUNDCNT_X = 0;
-        REG_SOUNDCNT_H = 0xB04; // GAX_SOUND_B_SETUP (SOUND_B_RIGHT_OUTPUT | SOUND_B_LEFT_OUTPUT | SOUND_B_TIMER_1 | SOUND_B_FIFO_RESET | SOUND_B_MIX_FULL) #define for header later
+        REG_DMA2SAD = GAX_ram->buffer_dma2;
 
-        for (i = 0; i < 8; i++)
-        {
+    } else {
+
+        REG_DMA1CNT    = 4;
+        REG_SOUNDCNT_X = 0;
+        REG_SOUNDCNT_H = 0xB04;
+
+        for (i = 0; i < 8; i++) {
             *(vu16*)REG_ADDR_FIFO_A = 0;
         }
+        
     }
 
     REG_SOUNDBIAS_H = 0x42;
-    REG_DMA1DAD = REG_ADDR_FIFO_A;
-    REG_DMA1SAD = (u32)GAX_ram->dma1sad_unk;
+    REG_DMA1DAD     = REG_ADDR_FIFO_A;
+    REG_DMA1SAD     = GAX_ram->buffer_dma1;
 
 }
 
