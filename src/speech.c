@@ -119,39 +119,31 @@ void SLTSF() {
 }
 
 // s16 speech_asl
-// https://decomp.me/scratch/ocZIG - beanieaxolotl
-// accuracy -> 46.89%
+// https://decomp.me/scratch/bS89k - beanieaxolotl
+// accuracy -> 100%
 
-s16 speech_asl(s16 param1, s32 param2) {
+static inline s16 speech_asr(s16 a, s32 n) {
     
-    if (param2 > 15) {
-        if (param2 > -15) {
-            if (param1 << 16 >= 0) {
-                return 0;
-            } else {
-                return -1;
-            }
-        }
+    // implementation of gsm_asr
+    // https://github.com/timothytylee/libgsm/src/add.c#L183
     
-        if (param2 < 0) {
-            if ((param2 != -15) && (-param2 > 14)) {
-                if (param1 < 0) {
-                    return -1;
-                }
-                return 0;
-            }
-            if ((param2 == 16) || (-param2 < -16)) {
-                return 0;
-            }
-            if (param2 < 1) {
-                return param1 >> param2;
-            }
-        }
-        return param1 << param2;
-        
-    } else {
-        return 0;
-    }
+    if (n >= 16)  return -(a < 0);
+    if (n <= -16) return 0;
+    if (n < 0)    return a << -n;
+    
+    return a >> n;
+}
+
+s16 speech_asl(s16 a, s32 n) {
+
+    // implementation of gsm_asl
+    // https://github.com/timothytylee/libgsm/src/add.c#L161
+    
+    if (n >= 16)  return 0;
+    if (n <= -16) return -(a < 0);
+    if (n < 0)    return speech_asr(a, -n);
+    
+    return a << n;
     
 }
 
