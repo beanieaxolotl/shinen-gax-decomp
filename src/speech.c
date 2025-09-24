@@ -1,19 +1,18 @@
 #include "gax.h"
+#include "speech_internal.h"
 
 
-// Put in gsm header file to #include later
-#define MIN_WORD -32768
-#define MAX_WORD 32767
-#define GSM_ADD(a, b) ((a) + (b))
-#define GSM_SUB(a, b)    ((a) - (b))
-#define GSM_MULT_R(a, b) ((a) * (b) + 0x4000) >> 0xF
-#undef	STEP
-#define	STEP( B_TIMES_TWO, MIC, INVA )	\
-    temp1    = GSM_ADD( *LARc++, MIC ) << 10;	\
-    temp1    = GSM_SUB( temp1, B_TIMES_TWO );	\
-    temp1    = GSM_MULT_R( INVA, temp1 );		\
+// macro functions
+
+#undef  STEP
+#define STEP( B_TIMES_TWO, MIC, INVA )  \
+    temp1    = GSM_ADD( *LARc++, MIC ) << 10;   \
+    temp1    = GSM_SUB( temp1, B_TIMES_TWO );   \
+    temp1    = GSM_MULT_R( INVA, temp1 );       \
     *LARpp++ = GSM_ADD( temp1, temp1 );
 
+#define saturate(x) ((x) < MIN_WORD ? MIN_WORD : (x) > MAX_WORD ? MAX_WORD: (x))
+    
 
 // GSM 6.10 tables
 // sourced from libgsm, https://quut.com/gsm/
@@ -33,6 +32,33 @@ const s16 speech_QLB[4] = {
 
 };
 
+
+// inlined functions
+
+static inline s16 speech_sub(s16 a, s16 b) {
+    
+    // implementation of gsm_sub
+    // https://github.com/timothytylee/libgsm/src/add.c#L29
+    
+    s32 diff = (s32)a - (s32)b;
+    return saturate(diff);
+    
+}
+
+static inline s16 speech_asr(s16 a, s32 n) {
+    
+    // implementation of gsm_asr
+    // https://github.com/timothytylee/libgsm/src/add.c#L183
+    
+    if (n >= 16)  return -(a < 0);
+    if (n <= -16) return 0;
+    if (n < 0)    return a << -n;
+    
+    return a >> n;
+}
+
+
+// functions
 
 // void GAXSpeech_internal0
 // https://decomp.me/scratch/ZjU9Y - beanieaxolotl, christianttt
@@ -93,8 +119,33 @@ void GAXSpeech_internal3() {
 	
 }
 
-void GAXSpeech_internal5() {
-	
+// void GAXSpeech_internal5
+// https://decomp.me/scratch/0j2jj - beanieaxolotl
+// accuracy -> 100%
+
+void GAXSpeech_internal5(s16* xMc, s16 mant, s16 exp, s16* xMp) {
+
+    // implementation of APCM_inverse_quantization
+    // https://github.com/timothytylee/libgsm/src/rpe.c#L349
+    
+    int i;
+    s16 temp, temp1, temp2, temp3;
+    s32 ltmp;
+
+    temp1 = speech_FAC[mant];
+    temp2 = speech_sub(6, exp);
+    temp3 = speech_asl(1, speech_sub(temp2, 1));
+
+    for (i = 13; i--;) {
+
+        temp = (*xMc++ << 1) - 7;
+        temp <<= 12;
+        
+        temp   = GSM_MULT_R(temp1, temp);
+        temp   = GSM_ADD(temp, temp3);
+        *xMp++ = speech_asr(temp, temp2);
+        
+    }
 }
 
 void GAXSpeech_internal6() {
@@ -121,18 +172,6 @@ void SLTSF() {
 // s16 speech_asl
 // https://decomp.me/scratch/bS89k - beanieaxolotl
 // accuracy -> 100%
-
-static inline s16 speech_asr(s16 a, s32 n) {
-    
-    // implementation of gsm_asr
-    // https://github.com/timothytylee/libgsm/src/add.c#L183
-    
-    if (n >= 16)  return -(a < 0);
-    if (n <= -16) return 0;
-    if (n < 0)    return a << -n;
-    
-    return a >> n;
-}
 
 s16 speech_asl(s16 a, s32 n) {
 
