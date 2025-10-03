@@ -260,7 +260,7 @@ u8 GAXTracker_process_envelope(GAX_channel *ch, const GAX_volenv *volenv, u16 *e
 
 // void GAXTracker_process_frame
 // https://decomp.me/scratch/nCWzw - beanieaxolotl
-// accuracy -> 82.41%
+// accuracy -> 83.58%
 
 void GAXTracker_process_frame(GAX_channel *ch) {
 
@@ -270,7 +270,6 @@ void GAXTracker_process_frame(GAX_channel *ch) {
     int old_modulate_position;
     int newvol;
     int temp2;
-    int wave_param_ptr;
     
     GAX_instrument* instrument;
     
@@ -287,7 +286,8 @@ void GAXTracker_process_frame(GAX_channel *ch) {
     if (ch->instrument->vibrato_depth > 0) {
         if (ch->vibrato_wait <= 0) {
             // only apply vibrato if we finish waiting
-            ch->vibtable_index = ch->instrument->vibrato_speed & (sizeof(GAX_vibtable)-1);
+            ch->vibtable_index = 
+                (ch->vibtable_index + ch->instrument->vibrato_speed & (sizeof(GAX_vibtable)-1));
         } else {
             // wait for our vibrato to finish
             ch->vibrato_wait--;
@@ -360,7 +360,7 @@ void GAXTracker_process_frame(GAX_channel *ch) {
 
 // void GAXTracker_process_perflist
 // https://decomp.me/scratch/7QIir - beanieaxolotl
-// accuracy -> 63.72%
+// accuracy -> 66.12%
 
 void GAXTracker_process_perflist(GAX_channel *ch) {
     
@@ -369,12 +369,12 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
     GAX_wave_param* wave;
 
     u32 i;
-    int j;
+    int wave_init;
     
-    // use shorthand for ch->instrument
-    instrument = ch->instrument;
     
-    if (ch->cur_perfstep >= instrument->perfstep_count) { 
+    if (ch->cur_perfstep >= ch->instrument->perfstep_count) { 
+        
+        instrument = ch->instrument;
         // stop perf list processing
         ch->perfstep_speed = 0; // override perflist step speed to 0 ticks
         if (ch->semitone_pitch == -30000) {
@@ -382,14 +382,14 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
         }
         
     } else {
-        
-        perflist = (void *)instrument->perflist + // get the current perf step list
-                    (ch->cur_perfstep * 8); 
+
+        // get the current perf step list
+        perflist = (void*)instrument->perflist + (ch->cur_perfstep * 8); 
         ch->cur_perfstep++; // advance to the next step
 
         if (perflist->note) { // only when a note is defined
-            ch->semitone_pitch = (perflist->note-2) * 32; // convert note to frequency space
-            ch->is_fixed       = perflist->fixed;
+            ch->semitone_pitch = (perflist->note-2) * 32; // > convert note to frequency space
+            ch->is_fixed       =  perflist->fixed;        // > is the frequency fixed?
             
             if (perflist->wave_idx) { // only if a wave index is defined
                 
@@ -412,17 +412,15 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
                     ch->enable_modulation = TRUE; // enable modulator
                 } 
                 
-                // calculate modulator position(?)
-                j = *(int*)(&wave->pingpong + (int)instrument->waves);
-                
-                ch->modulate_position  = j;
-                ch->wave_position      = j << 11;
+                wave_init              = wave->init;
+                ch->modulate_position  = wave_init;
+                ch->wave_position      = wave_init << 11;
                 ch->modulate_timer     = wave->mod_speed;
-
-                if ((j + wave->mod_size) > wave->max) {
-                    ch->modulate_direction = -1; // process backwards 
+                
+                if ((wave_init + wave->mod_size) > wave->max) {
+                    ch->modulate_direction = -1; // process backwards
                 } else {
-                    ch->modulate_direction = 1; // process forwards
+                    ch->modulate_direction = 1;
                 }
 
             }
@@ -466,10 +464,10 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
                     case PERF_DELAY_STEP:
                         // 6xx - delay the perf step by X frames
                         if (ch->perfstep_delay == 0) {
-                            if (fx_param >= 1) {
-                                fx_param++;
+                            if (fx_param != 0) {
+                                fx_param = ch->perfstep_delay + 1;
                             } else {
-                                fx_param = 0;
+                                return;
                             }
                             ch->perfstep_delay = fx_param;
                         }
@@ -499,6 +497,7 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
                         break;
 
                 }   
+                
             }
         }
     }
