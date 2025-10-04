@@ -159,8 +159,166 @@ const u32 GAX_freqtable[12 * 32] = {
 };
 
 
-// to do
-u8 GAXTracker_generate_audio(GAX_channel *ch, GAX_player* replayer, u32 unk, u32 flag) {}
+// b8 GAXTracker_generate_audio
+// https://decomp.me/scratch/zDrka - beanieaxolotl
+// accuracy -> 56.46%
+// ==========================
+// extremely WIP / unfinished
+
+b8 GAXTracker_generate_audio(GAX_channel* ch, GAX_player* replayer, GAXSongData* song_data, u32 flag) {
+
+    int* wave_addr;
+    
+    int temp, temp1, temp2;
+    int new_wave_position;
+    u8  volenv_volume, wave_volume, instrument_volume, mixing_volume, global_volume;
+    b8  use_modulation;
+    GAX_instrument *instrument;
+    u8* memsize;
+    
+    // unidentified / temp
+    int  unk_uint_1;
+    u16* psVar2;
+    int  local_30;
+    int  local_38;
+    u32  timer_reload;
+    int  local_48;
+    u32  uVar1;
+
+    b8 enable_modulation;
+    
+    // this seems to check if we can generate audio, judging by it returning either TRUE or FALSE
+    
+    if (!ch->instrument || ch->semitone_pitch == -30000 || ch->waveslot_idx >= 4) {
+        /* return 0 if:
+           there is no instrument playing
+           the semitone pitch is -30000
+           the wave slot index is more than 0x3 (a failsafe measure) */
+        return FALSE;
+    }
+    
+    /* get the ROM address of the instrument's current waveform.
+       this is typically set to after the instrument data. */
+    wave_addr = (void*)song_data->waveform_data + (ch->instrument->waves[ch->waveslot_idx]*8);
+    if (wave_addr == NULL) {
+        // if we encounter an unused waveform, discard immediately
+        return FALSE;
+    }
+
+    // temp is the channel's pitch. we also apply the calculated vibrato pitch
+    temp = ch->semitone_pitch + ch->vibrato_pitch;
+    if (!ch->is_fixed && (temp = temp+ch->cur_pitch, temp1 = 0)) {
+        // apply the pattern's transpose value to the base channel pitch
+        temp += ch->order[replayer->pattern].transpose * 32;
+    }
+
+    // apply finetune
+    temp += ch->instrument->wave_params[ch->waveslot_idx].tune;
+    GAX_CLAMP(temp, 0, 0xEF1); // clamp the pitch into bounds
+   
+    if (temp >= 0xD80) {
+        temp = GAX_freqtable[temp - 0xD80] << 1;
+    } else {
+        temp2 = 0;
+        for (temp -= 3072; temp < 0; temp += 384) {
+            temp2++;
+        }
+        temp = GAX_freqtable[temp] >> temp2;
+    }
+
+    // set the volume variables
+    volenv_volume     = ch->volenv_volume;
+    wave_volume       = ch->wave_volume;
+    instrument_volume = ch->instrument_volume;
+    mixing_volume     = ch->mixing_volume;
+    global_volume     = replayer->global_volume;
+
+    // mixing volume handler
+    unk_uint_1 = temp1*4;
+    temp2 = (((mixing_volume * ((((wave_volume * volenv_volume) >> 8) * 
+               instrument_volume) >> 8)) >> 8) * global_volume) >> 8;
+    if (temp1 == 0) {
+        temp2 *= song_data->volume >> 8;
+    }
+    temp2 >>= GAX_ram->volboost_level;
+    *psVar2 = GAX_ram->dc_correction_val + 2;
+    *psVar2 += temp2<<GAX_ram->volboost_level;
+    
+    local_30 = _call_via_r3(temp, GAX_ram->unk4C[temp1 - 3],
+                           unk_uint_1, GAX_umull);
+
+    
+    // modulator handler
+    use_modulation = FALSE;
+    instrument = ch->instrument;
+    temp       = ch->waveslot_idx;
+    
+    if (instrument->wave_params[ch->waveslot_idx].modulation 
+       && instrument->wave_params[ch->waveslot_idx].min < instrument->wave_params[ch->waveslot_idx].max) {
+        use_modulation = TRUE;
+    } 
+    uVar1    = wave_addr[1];
+    timer_reload = GAX_ram->current_buf->timer_reload;
+    
+    if (use_modulation) {
+        local_38 = (instrument->wave_params[ch->waveslot_idx].max
+                   - instrument->wave_params[ch->waveslot_idx].min) * 2048;
+    }
+    temp = uVar1 << 11;
+    enable_modulation = ch->enable_modulation;
+    
+    if (enable_modulation) {
+        local_38   = instrument->wave_params[ch->waveslot_idx].mod_size;
+        temp       = (ch->modulate_position + local_38) * 2048;
+        local_38 <<= 11;
+    }
+    local_48          = *wave_addr + (temp >> 11);
+    new_wave_position = ch->wave_position - temp;
+
+    if (!use_modulation) {
+        if (enable_modulation) {
+            goto unset_modulation;
+        }
+        //local_38 = (local_48 - (*song_data->waveform_data)
+    }
+
+    // ping-pong loop handler
+    if ((!enable_modulation && use_modulation)
+       && instrument->wave_params[ch->waveslot_idx].pingpong) {
+        
+        local_30 *= ch->wave_direction;
+
+        // call void GAXTracker_asm_end()
+        _call_via_r1(&local_48, GAX_ram->gax_tracker_asm_end);
+
+        if (local_30 < 0) {
+            // end of forwards loop
+            ch->wave_direction = -1;
+            ch->wave_position  = (new_wave_position + temp) - local_38;
+        } else {
+            // end of backwards loop
+            ch->wave_direction = 1;
+            ch->wave_position  = new_wave_position + temp;
+        }
+        return TRUE;
+        
+    }
+
+    unset_modulation:
+    
+        _call_via_r1(&local_48, GAX_ram->gax_tracker_asm);
+        ch->wave_position  = new_wave_position + temp;
+        if (new_wave_position + temp < 0) {
+            ch->semitone_pitch = -30000;
+            ch->wave_porta_val = 0;
+            if (ch->perfstep_speed == 0) {
+                ch->priority = 1 << 31;
+            }
+        }
+    
+        return TRUE;
+    
+}
 
 // u32 GAXTracker_open
 // https://decomp.me/scratch/7tzcx - AArt1256, beanieaxolotl
