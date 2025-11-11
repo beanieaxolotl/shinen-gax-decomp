@@ -156,8 +156,18 @@ void GAXSpeech_mix() {
 	
 }
 
-void GAXSpeech_open() {
-	
+// void GAXSpeech_open
+// https://decomp.me/scratch/B3lkx - beanieaxolotl
+// accuracy -> 100%
+
+void GAXSpeech_open(GAXSpeech_unk* param_1) {
+    
+    speech_create(&param_1->unk04);
+    
+    param_1->unk798 = -1;
+    param_1->unk79C =  0;
+    param_1->unk7A0 =  0;
+    
 }
 
 void GAXSpeech_render() {

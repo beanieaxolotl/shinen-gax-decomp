@@ -1,4 +1,4 @@
-// defines
+// defines //
 
 #define MATCHING   TRUE
 
@@ -15,8 +15,8 @@
 enum perfstep_command {
     PERF_PORTA_UP       = 0x1,
     PERF_PORTA_DOWN     = 0x2,
-    PERF_SET_STEP       = 0x5,
-    PERF_DELAY_STEP     = 0x6,
+    PERF_GOTO_STEP      = 0x5,
+    PERF_REPEAT_STEP    = 0x6,
     PERF_VOLSLIDE_UP    = 0xA,
     PERF_VOLSLIDE_DOWN  = 0xB,
     PERF_SET_VOLUME     = 0xC,
@@ -261,26 +261,6 @@ typedef struct GAX_FX_channel {
     u32         fxid;
 
 } GAX_FX_channel;
-
-
-typedef struct GAX_unk0 {
-    // speech related
-    u8 unk0[594];
-    u16 unk252;
-    u8 unk254[732];
-    u8 unk530;
-    u8 unk531;
-    u8 unk532[338];
-    u8 unk684;
-    u8 unk685;
-    u8 unk686[178];
-    u8 unk738;
-    u8 unk739;
-    u8 unk73A[78];
-    void* unk788;
-    void* unk78C;
-    void* unk790;
-} GAX_unk0;
 
 
 typedef struct GAX_playbackvars {

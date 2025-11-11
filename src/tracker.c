@@ -518,7 +518,7 @@ void GAXTracker_process_frame(GAX_channel *ch) {
 
 // void GAXTracker_process_perflist
 // https://decomp.me/scratch/7QIir - beanieaxolotl
-// accuracy -> 66.12%
+// accuracy -> 65.14%
 
 void GAXTracker_process_perflist(GAX_channel *ch) {
     
@@ -611,23 +611,23 @@ void GAXTracker_process_perflist(GAX_channel *ch) {
                         ch->wave_porta_val = -fx_param;
                         break;
 
-                    case PERF_SET_STEP:
-                        // 5xx - jumps to perf step X after the current step 
-                        if (ch->perfstep_delay == 0 || 
-                           (fx_param--, ch->perfstep_delay = fx_param)) {
+                    case PERF_GOTO_STEP:
+                        // 5xx - jumps to perf step X after the current step     
+                        if (ch->perfstep_loop_counter == 0 || 
+                           (ch->perfstep_loop_counter--, 
+                            ch->perfstep_loop_counter != 0)) {
                             ch->cur_perfstep = fx_param;
                         }
                         break;
 
-                    case PERF_DELAY_STEP:
-                        // 6xx - delay the perf step by X frames
-                        if (ch->perfstep_delay == 0) {
+                    case PERF_REPEAT_STEP:
+                        // 6xx - repeats the current step X times
+                        if (ch->perfstep_loop_counter == 0) {
                             if (fx_param != 0) {
-                                fx_param = ch->perfstep_delay + 1;
+                                ch->perfstep_loop_counter = fx_param+1;
                             } else {
-                                return;
+                                ch->perfstep_loop_counter = 0;
                             }
-                            ch->perfstep_delay = fx_param;
                         }
                         break;
 
