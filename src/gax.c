@@ -1095,63 +1095,57 @@ void GAX_resume_music() {
 
 // u32 GAX_backup_fx
 // https://decomp.me/scratch/WUJAg - beanieaxolotl, christianttt
-// accuracy -> 99.35%
+// accuracy -> 100%
 
-u32 GAX_backup_fx(s32 fxch, void* buf) {
-
-    u32 buf_size;
+u32 GAX_backup_fx(s32 index, void *dest)
+{
+    u32 size;
+    u32 num;
     u32 i;
-    
-    if (fxch == -1) {
-        buf_size = (GAX_ram->num_fx_channels * sizeof(GAX_FX_channel));
-    } 
-    else {
-        buf_size = sizeof(GAX_FX_channel);
+    u8 *flags_dest;
+
+    if (index == -1)
+    {
+        size = GAX_ram->num_fx_channels * sizeof(GAX_FX_channel);
     }
-    
-    if (fxch == -1) {
-        buf_size += GAX_ram->num_fx_channels;
-    } 
-    else {
-        buf_size += 1;
+    else
+    {
+        size = sizeof(GAX_FX_channel);
     }
 
-    if (buf == NULL) {
-        return buf_size;
+    if (index == -1)
+    {
+        size += GAX_ram->num_fx_channels;
     }
-    
-    if (fxch == -1) {
-        
-        u32 num_fx;
-        u8* id_buf;
-        
-        num_fx = GAX_ram->num_fx_channels;
-        id_buf = (u8*)buf + (num_fx * sizeof(GAX_FX_channel));
-        
-        CpuSet(GAX_ram->fx_channels,
-               buf,
-               (DMA_SRC_INC | DMA_32BIT_BUS | ((num_fx * 20) & 0x1FFFFF)));
-        
-        for (i = 0; i < GAX_ram->num_fx_channels; i++) {
-            id_buf[i] = GAX_ram->fx_indexes[i];
-        } 
-        
-    } else {
-        
-        void* src;
-        
-
-        src = (u8*)GAX_ram->fx_channels + (fxch * sizeof(GAX_FX_channel));
-
-        CpuSet(src, buf, REG_ADDR_BG1HOFS);
-        
-        *((u8*)buf + sizeof(GAX_FX_channel)) = GAX_ram->fx_indexes[fxch];
+    else
+    {
+        size += 1;
     }
-    
-    return buf_size;
 
-    //Close but will come back to it
-    
+    if (dest != NULL)
+    {
+        if (index == -1)
+        {
+            num = GAX_ram->num_fx_channels;
+            flags_dest = (u8 *)dest + (num * sizeof(GAX_FX_channel));
+            CpuSet(GAX_ram->fx_channels, 
+                   dest, 
+                   ((num * (sizeof(GAX_FX_channel) / 4)) & 0x1FFFFF) | DMA_32BIT_BUS);
+
+            for (i = 0; i < GAX_ram->num_fx_channels; i++)
+            {
+                flags_dest[i] = GAX_ram->fx_indexes[i];
+            }
+        }
+        else
+        {
+            CpuSet(&GAX_ram->fx_channels[index], 
+                   dest, 
+                   (sizeof(GAX_FX_channel) / 4) | DMA_32BIT_BUS);
+            ((u8 *)dest)[sizeof(GAX_FX_channel)] = GAX_ram->fx_indexes[index];
+        }
+    }
+    return size;
 }
 
 
