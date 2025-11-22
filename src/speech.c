@@ -55,6 +55,7 @@ static inline s16 speech_asr(s16 a, s32 n) {
     if (n < 0)    return a << -n;
     
     return a >> n;
+
 }
 
 
@@ -112,7 +113,9 @@ void GAXSpeech_internal1(s16* LARp) {
                      : (temp < 20070) ? (temp + 11059)
                      : GSM_ADD(temp >> 2, 26112));
         }
+
     }
+
 }
 
 void GAXSpeech_internal3() {
@@ -146,6 +149,7 @@ void GAXSpeech_internal5(s16* xMc, s16 mant, s16 exp, s16* xMp) {
         *xMp++ = speech_asr(temp, temp2);
         
     }
+    
 }
 
 void GAXSpeech_internal6() {

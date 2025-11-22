@@ -391,4 +391,17 @@ typedef struct RenderArgs {
     u16   dc_correction_val;
 } RenderArgs;
 
-typedef void (*GAX_RenderFunc)(RenderArgs *);
+
+typedef struct unknownArgs {
+
+    int                  mixbuf_size;
+    GAX_playback_buffer* mixbuf;
+    
+    u32  foo;
+    u32  bar;
+    u8*  baz;
+    u16* dc_thing1;
+    u32  dc_thing2;
+    u32  dc_thing3;
+
+} unknownArgs;

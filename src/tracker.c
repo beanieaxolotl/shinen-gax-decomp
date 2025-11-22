@@ -159,6 +159,8 @@ const u32 GAX_freqtable[12 * 32] = {
 };
 
 
+// functions
+
 // b8 GAXTracker_generate_audio
 // https://decomp.me/scratch/zDrka - beanieaxolotl
 // accuracy -> 56.46%

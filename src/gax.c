@@ -70,6 +70,7 @@ const char GAX_font[281] = {
 // accuracy -> 100%
 
 static u8* GAX_code2ram(u8 *startaddr, u8 *endaddr) {
+
     s32 sz;
     u8 *scratchmem;
     u8 *out;
@@ -91,6 +92,7 @@ static u8* GAX_code2ram(u8 *startaddr, u8 *endaddr) {
 
     CpuCopy(startaddr, out, sz, 32);
     return out;
+
 }
 
 // void GAX_open
@@ -369,10 +371,12 @@ void GAX_clear_mem(u32 dest, u32 size) {
     iVar3  = size - uVar4;
     
     if (iVar3 > 0) {
+
         while (iVar3 != 0) {
             *puVar2 = 0;
             puVar2++, iVar3--;
         }
+
     }
     
 }
@@ -402,7 +406,6 @@ void GAX2_new(GAXParams* params) {
     for (i1 = 0; i1 < (i - (i & -0x20)); i1++) {
         *param_temp1++ = 0;
     }
-    
     
     params->mixing_rate    = -1;
     params->fx_mixing_rate = -1;
@@ -767,7 +770,9 @@ void GAX2_calc_mem(GAXParams* params) {
         GAX_ram->irq_state            = 1;     // IRQs are final?
         
         return TRUE;
+
     }
+
 }
 
 // u32 GAX2_fx
@@ -833,6 +838,7 @@ void GAX2_calc_mem(GAXParams* params) {
     ((GAX_FX_channel*)(((u8**)GAX_ram)[3]))[channel_id].fxvol = (u8)final_volume;
 
     return channel_id;
+
 }
 
 
@@ -888,6 +894,7 @@ void GAX_irq() {
         }
         
         GAX_ram->irq_finished = 0;
+
     }
     
 }
@@ -1007,8 +1014,8 @@ void GAX_play() {
 }
 
 // void GAX_pause
-// https://decomp.me/scratch/vA76E - beanieaxolotl, christianttt
-// accuracy -> 92.77%
+// https://decomp.me/scratch/46ZwS - beanieaxolotl, christianttt
+// accuracy -> 100%
 
 void GAX_pause() {
 
@@ -1026,25 +1033,24 @@ void GAX_pause() {
 
     REG_DMA1CNT_H = (DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
-    __asm__ volatile(
-        "nop\n\t"
-        "nop\n\t"
-        "nop\n\t"
-        "nop"
-    );
+    asm("mov r3, r3");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    
     REG_DMA1CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
+
     if (GAX_ram->buf_header_dma2) {
         
         REG_DMA2CNT_H = (DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
-        __asm__ volatile(
-            "nop\n\t"
-            "nop\n\t"
-            "nop\n\t"
-            "nop"
-        );
+        asm("mov r3, r3");
+        asm("nop");
+        asm("nop");
+        asm("nop");
         
         REG_DMA2CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
+
     }
 
 }
@@ -1056,9 +1062,11 @@ void GAX_pause() {
 // edits by beanieaxolotl
 
 void GAX_resume() {
+
     int i;
     
     if (!GAX_ram->irq_state) {
+
         GAX_ram->irq_state = 1;
         
         if (GAX_ram->buf_header_dma2) {
@@ -1074,7 +1082,9 @@ void GAX_resume() {
            }
             REG_SOUNDCNT_H |= (SOUND_A_LEFT_OUTPUT | SOUND_A_RIGHT_OUTPUT);
         }
+
     }
+
 }
 
 // void GAX_pause_music
@@ -1096,56 +1106,53 @@ void GAX_resume_music() {
 // u32 GAX_backup_fx
 // https://decomp.me/scratch/WUJAg - beanieaxolotl, christianttt
 // accuracy -> 100%
+// ======================
+// formatting edits by beanieaxolotl
 
 u32 GAX_backup_fx(s32 index, void *dest)
 {
     u32 size;
     u32 num;
     u32 i;
-    u8 *flags_dest;
+    u8  *flags_dest;
 
-    if (index == -1)
-    {
+    if (index == -1) {
         size = GAX_ram->num_fx_channels * sizeof(GAX_FX_channel);
-    }
-    else
-    {
+    } else {
         size = sizeof(GAX_FX_channel);
     }
 
-    if (index == -1)
-    {
+    if (index == -1) {
         size += GAX_ram->num_fx_channels;
-    }
-    else
-    {
+    } else {
         size += 1;
     }
 
-    if (dest != NULL)
-    {
-        if (index == -1)
-        {
+    if (dest != NULL) {
+
+        if (index == -1) {
+
             num = GAX_ram->num_fx_channels;
             flags_dest = (u8 *)dest + (num * sizeof(GAX_FX_channel));
             CpuSet(GAX_ram->fx_channels, 
                    dest, 
                    ((num * (sizeof(GAX_FX_channel) / 4)) & 0x1FFFFF) | DMA_32BIT_BUS);
 
-            for (i = 0; i < GAX_ram->num_fx_channels; i++)
-            {
+            for (i = 0; i < GAX_ram->num_fx_channels; i++) {
                 flags_dest[i] = GAX_ram->fx_indexes[i];
             }
-        }
-        else
-        {
+
+        } else {
             CpuSet(&GAX_ram->fx_channels[index], 
                    dest, 
                    (sizeof(GAX_FX_channel) / 4) | DMA_32BIT_BUS);
             ((u8 *)dest)[sizeof(GAX_FX_channel)] = GAX_ram->fx_indexes[index];
         }
+
     }
+
     return size;
+
 }
 
 
@@ -1186,6 +1193,7 @@ void GAX_restore_fx(s32 fxch, const void* buf) {
         GAX_ram->fx_indexes[fxch] = *((const u8*)buf + 80);
         
     }
+
 }
 
 // u32 GAX_fx
@@ -1358,6 +1366,7 @@ void GAX_fx_note(s32 fxch, s32 note) {
         fxid = GAX_ram->fx_indexes[fxch];
     }
     return fxid;
+
 }
 
 // void GAX_stop_fx
@@ -1426,11 +1435,12 @@ void GAX_set_fx_volume(s32 fxch, u32 vol) {
     } else if (fxch > -2 && fxch < GAX_ram->num_fx_channels) {
         GAX_ram->fx_channels[fxch].fxch.mixing_volume = vol;
     }
+
 }
 
 // void GAX_stop
 // https://decomp.me/scratch/41RMV - beanieaxolotl, christianttt
-// accuracy -> 92.59%
+// accuracy -> 100%
 
 void GAX_stop(void) {
 
@@ -1441,23 +1451,27 @@ void GAX_stop(void) {
     
     REG_SOUNDCNT_X = 0;
     REG_DMA1CNT_H  = (DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
+
     __asm__ volatile(
-        "nop\n\t"
+        "mov r3, r3\n\t"
         "nop\n\t"
         "nop\n\t"
         "nop"
     );
+
     REG_DMA1CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
     if (GAX_ram->buf_header_dma2 != NULL) {
         REG_DMA2CNT_H = (DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
+
         __asm__ volatile(
-            "nop\n\t"
+            "mov r3, r3\n\t"
             "nop\n\t"
             "nop\n\t"
             "nop"
         );
-        REG_DMA2CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);;
+
+        REG_DMA2CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
     }
     
     REG_TM0CNT = 0;
@@ -1465,6 +1479,7 @@ void GAX_stop(void) {
     if (GAX_ram->buf_header_dma2 != NULL) {
         REG_TM1CNT = 0;
     }
+
 }
 
 
@@ -1561,6 +1576,7 @@ void GAX_ASSERT_PRINT(int x, int y, const char* string) {
         string++;
             
     }
+
 }
 
 // void GAX_ASSERT
@@ -1609,12 +1625,14 @@ void GAX_ASSERT(const char* fn, const char* msg) {
     GAX_ASSERT_PRINT(0,7,msg);
 
     while (TRUE) {
+
         while(!(key_mask & START_BUTTON)) {
             // what keys are currently being pressed?
             key_mask = REG_KEYINPUT ^ KEYS_MASK;           
         }
         // soft reset the system if the start button is pressed
         SoftReset();
+
     }
 
 }
