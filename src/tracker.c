@@ -350,7 +350,7 @@ void GAXTracker_open(GAX_channel *ch) {
     ch->unk1              = 0;
 
     if (GAX_ram->music_pitch == 0) {
-        GAX_ram->music_pitch = 0x100000000 / GAX_ram->current_buf->mixrate;
+        GAX_ram->music_pitch = ((u64)0x100000000) / GAX_ram->current_buf->mixrate;
     }
 }
 
