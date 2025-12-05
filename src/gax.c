@@ -1033,10 +1033,12 @@ void GAX_pause() {
 
     REG_DMA1CNT_H = (DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
-    asm("mov r3, r3");
-    asm("nop");
-    asm("nop");
-    asm("nop");
+    __asm__ volatile(
+        "mov r3, r3\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop"
+    );
     
     REG_DMA1CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
@@ -1044,10 +1046,12 @@ void GAX_pause() {
         
         REG_DMA2CNT_H = (DMA_ENABLE | DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
-        asm("mov r3, r3");
-        asm("nop");
-        asm("nop");
-        asm("nop");
+        __asm__ volatile(
+            "mov r3, r3\n\t"
+            "nop\n\t"
+            "nop\n\t"
+            "nop"
+        );
         
         REG_DMA2CNT_H = (DMA_DEST_FIXED | DMA_REPEAT | DMA_32BIT);
 
