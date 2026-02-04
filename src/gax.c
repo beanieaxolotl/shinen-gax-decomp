@@ -96,34 +96,26 @@ static u8* GAX_code2ram(u8 *startaddr, u8 *endaddr) {
 }
 
 // void GAX_open
-// https://decomp.me/scratch/sH7lJ - beanieaxolotl, taxicat1
-// accuracy -> 93.97%
+// https://decomp.me/scratch/sH7lJ - beanieaxolotl
+// accuracy -> 78.39%
 
 void GAX_open() {
 
     int i;
     int offset;
-    u8* num_channels;
     
     GAXOutput_open(GAX_ram->replayer[GAX_ram->mix_buffer_id]); // reset timer
-    GAX_ram->current_buf = GAX_ram->buf_header_dma1;           // default to using the DMA1 buffer
-    
-    i = 0;
+    GAX_ram->current_buf = GAX_ram->buf_header_dma1;   // default to using the DMA1 buffer
 
-    // this is wrong
-    num_channels = &GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels;
-    
-    if (i < *num_channels) {
-        offset = 0;
-        do {
+    if (GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels) {
+        for (i = 0; i < GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->num_channels; i++) {
             // reset the channel for playback
             GAXTracker_open((GAX_channel*)(&GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels->ignore + offset));
             // load the data for the song's first order
-            *(u32*)((void*)&GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels->order + offset) =
-                *(u32*)(&GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->track_data + i + 5);
+            *(u32*)(&GAX_ram->replayer[GAX_ram->mix_buffer_id]->channels->order + offset) 
+              = *(u32*)(GAX_ram->replayer[GAX_ram->mix_buffer_id]->song_2->track_data + i * 4 + 3);
             offset += sizeof(GAX_channel);
-            i++;
-        } while (i < *num_channels);
+        }
     }
 
     GAXSync_open(GAX_ram->replayer[GAX_ram->mix_buffer_id]); // set up replayer variables
