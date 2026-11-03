@@ -1705,7 +1705,7 @@ void GAX_ASSERT(const char* fn, const char* msg) {
             key_mask = REG_KEYINPUT ^ KEYS_MASK;           
         }
         // soft reset the system if the start button is pressed
-        SoftReset();
+        SoftReset(RESET_ALL);
 
     }
 

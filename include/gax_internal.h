@@ -352,7 +352,7 @@ struct {
     u32 unk4C[0x2];
     u32 irq_state;
     u8  volboost_level;
-    u8  unk59;
+    b8  fx_bool;
     u8  playback_state;
     u8  unk5B;
     u8  unk5C;
@@ -376,8 +376,8 @@ struct {
     u32   unk80;
     u32   free_mem;
     u8    fx_indexes[MAX_FX_CHANNELS];
-    u8*   scratchmem;
-    u32   scratchmem_size;
+    u8*   scratch_mem;
+    u32   scratch_mem_size;
 
     GAX_FX_channel fxch[MAX_FX_CHANNELS];
 
@@ -407,4 +407,11 @@ typedef struct unknownArgs {
 } unknownArgs;
 
 extern void GAX_umull(void);
-extern u32 _call_via_r3();
+extern u32 _call_via_r3();
+
+#define scratchmem scratch_mem
+#define scratchmem_size scratch_mem_size
+
+#define end_addr_1 unk80
+
+#define unk59 fx_bool

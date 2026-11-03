@@ -4,6 +4,7 @@
 
 #define MIN_WORD -32768
 #define MAX_WORD 32767
+#define GSM_MAGIC 0xD
 
 #define GSM_ADD(a, b) ((a) + (b))
 #define GSM_SUB(a, b)    ((a) - (b))
@@ -74,4 +75,4 @@ void speech_create(GAX_unk0* speech_unk);
 s32 speech_decode(struct speech_state *s, u8* c, s32 target);
 void STSF();
 void SLTSF(GAX_unk0* S, s16 Ncr, u16 bcr, s16* erp, s16* drp);
-
+
