@@ -1,4 +1,5 @@
 #include "gax.h"
+#include "gax_internal.h"
 
 // void GAXSync_open
 // https://decomp.me/scratch/YiDDu - beanieaxolotl
@@ -31,8 +32,8 @@ void GAXSync_open(GAX_player* player) {
 }
 
 // void GAXSync_render
-// https://decomp.me/scratch/x7Gje - beanieaxolotl
-// accuracy -> 94.78%
+// https://decomp.me/scratch/AoTtm - Warm Mosquito (anon)
+// accuracy -> 96.73%
 
 u32 GAXSync_render(GAX_player* player, int unk) {
 
@@ -53,7 +54,7 @@ u32 GAXSync_render(GAX_player* player, int unk) {
             if (player->skip_pattern) {
                 // the song encounters a pattern break effect
                 player->skip_pattern = FALSE;
-                player->step = player->song->step_count; // load the last step + 1
+                player->step = player->song->num_steps_per_pattern; // load the last step + 1
                 song = player->song;                     // reload the song for the step data
             } else {
                 player->step++;      // load the next step
@@ -70,14 +71,14 @@ u32 GAXSync_render(GAX_player* player, int unk) {
             new_speed = GAX_ram->params->speed_adjust + ((u8)player->speed_buf-1);
             player->speed_timer = GAX_CLAMP(new_speed, 0, new_speed);
             
-            if (player->step >= player->song->step_count) {
+            if (player->step >= player->song->num_steps_per_pattern) {
                 // if there are no more steps to process
                 player->step             = 0;    // restart from step #0
                 player->new_step_idx     = 0;    // same here
                 player->pattern_finished = TRUE; // pattern is now finished
                 player->pattern++;
                 
-                if (song->song_length >= player->pattern) {
+                if (song->num_patterns_per_channel >= player->pattern) {
                     // if there are no more patterns to process
                     if (player->stop_on_songend) {
                         // handler for the GAX_STOP_ON_SONGEND flag
@@ -85,7 +86,7 @@ u32 GAXSync_render(GAX_player* player, int unk) {
                         player->speed_buf  = 0;
                     }
                     player->songend = TRUE;
-                    player->pattern = song->restart_position;
+                    player->pattern = song->loop_point;
                     
                 } else {
                     // when a pattern simply finishes 

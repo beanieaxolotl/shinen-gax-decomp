@@ -1,4 +1,4 @@
-#include "gba\gba.h"
+#include "gba/gba.h"
 
 /********************************************************************
  *                     GAX Sound Engine                             *

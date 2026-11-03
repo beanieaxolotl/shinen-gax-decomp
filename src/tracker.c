@@ -468,20 +468,20 @@ void GAXTracker_process_frame(GAX_channel *ch) {
     old_modulate_position = ch->modulate_position;
     instrument            = ch->instrument;
 
-    ch->modulate_timer = instrument->wave_param[ch->waveslot_idx].mod_speed;
+    ch->modulate_timer = instrument->wave_params[ch->waveslot_idx].mod_speed;
 
     if (ch->modulate_direction > 0) {
         // forwards modulation
-        ch->modulate_position += instrument->wave_param[ch->waveslot_idx].mod_step;
-        if (ch->modulate_position > instrument->wave_param[ch->waveslot_idx].mod_size) {
-            ch->modulate_position  -= instrument->wave_param[ch->waveslot_idx].mod_step*2;
+        ch->modulate_position += instrument->wave_params[ch->waveslot_idx].mod_step;
+        if (ch->modulate_position > instrument->wave_params[ch->waveslot_idx].mod_size) {
+            ch->modulate_position  -= instrument->wave_params[ch->waveslot_idx].mod_step*2;
             ch->modulate_direction = -1;
         }         
     } else {
         // backwards modulation
-        ch->modulate_position -= instrument->wave_param[ch->waveslot_idx].mod_step;
-        if (ch->modulate_position < instrument->wave_param[ch->waveslot_idx].mod_size) {
-            ch->modulate_position  += instrument->wave_param[ch->waveslot_idx].mod_step*2;
+        ch->modulate_position -= instrument->wave_params[ch->waveslot_idx].mod_step;
+        if (ch->modulate_position < instrument->wave_params[ch->waveslot_idx].mod_size) {
+            ch->modulate_position  += instrument->wave_params[ch->waveslot_idx].mod_step*2;
             ch->modulate_direction = 1;
         } 
     }
@@ -519,145 +519,97 @@ void GAXTracker_process_frame(GAX_channel *ch) {
 }
 
 // void GAXTracker_process_perflist
-// https://decomp.me/scratch/7QIir - beanieaxolotl
-// accuracy -> 65.14%
+// https://decomp.me/scratch/JREaN - Warm Mosquito (anon)
+// accuracy -> 70.31% (Assembly-identical, jump-table alignment on decomp.me)
 
 void GAXTracker_process_perflist(GAX_channel *ch) {
-    
-    GAX_instrument* instrument;
+    GAX_instrument* instrument = ch->instrument;
     GAX_perflist*   perflist;
     GAX_wave_param* wave;
-
     u32 i;
-    int wave_init;
-    
-    
-    if (ch->cur_perfstep >= ch->instrument->perfstep_count) { 
-        
-        instrument = ch->instrument;
-        // stop perf list processing
-        ch->perfstep_speed = 0; // override perflist step speed to 0 ticks
+
+    if (ch->cur_perfstep >= instrument->perfstep_count) {
+        ch->perfstep_speed = 0;
         if (ch->semitone_pitch == -30000) {
-            ch->priority = 1 << 31; // free channel from memory
+            ch->priority = 0x80000000;
         }
-        
     } else {
+        perflist = (void*)instrument->perflist + (ch->cur_perfstep * 8);
+        ch->cur_perfstep++;
 
-        // get the current perf step list
-        perflist = (void*)instrument->perflist + (ch->cur_perfstep * 8); 
-        ch->cur_perfstep++; // advance to the next step
+        if (perflist->note) {
+            ch->semitone_pitch = (perflist->note - 2) << 5;
+            ch->is_fixed       = perflist->fixed;
 
-        if (perflist->note) { // only when a note is defined
-            ch->semitone_pitch = (perflist->note-2) * 32; // > convert note to frequency space
-            ch->is_fixed       =  perflist->fixed;        // > is the frequency fixed?
-            
-            if (perflist->wave_idx) { // only if a wave index is defined
-                
-                // correct wave slot index to start at 0
-                ch->waveslot_idx = perflist->wave_idx-1;
-                
-                // get the wave data
-                wave = (GAX_wave_param*)(ch->waveslot_idx * sizeof(GAX_wave_param));
-                wave++;
-    
-                // initialize waveform playback variables
-                ch->wave_position     = 0;     // start of waveform data
-                ch->wave_direction    = 1;     // process wave data forwards
-                ch->wave_volume       = 255;   // full volume if no set volume is defined
-                ch->enable_modulation = FALSE; // disable modulator
-    
-                if ((wave->modulation) && ((wave->min < wave->max)) 
-                    && (wave->mod_size > 0) && (wave->mod_speed > 0) 
-                    && (wave->mod_step > 0)) {   
-                    ch->enable_modulation = TRUE; // enable modulator
-                } 
-                
-                wave_init              = wave->init;
-                ch->modulate_position  = wave_init;
-                ch->wave_position      = wave_init << 11;
-                ch->modulate_timer     = wave->mod_speed;
-                
-                if ((wave_init + wave->mod_size) > wave->max) {
-                    ch->modulate_direction = -1; // process backwards
-                } else {
+            if (perflist->wave_idx) {
+                ch->waveslot_idx = perflist->wave_idx - 1;
+                wave = &instrument->wave_params[ch->waveslot_idx];
+
+                ch->wave_position     = 0;
+                ch->wave_direction    = 1;
+                ch->wave_volume       = 255;
+                ch->enable_modulation = 0;
+
+                if (wave->modulation && wave->min < wave->max
+                    && wave->mod_size > 0 && wave->mod_speed > 0
+                    && wave->mod_step > 0) {
+                    s32 wave_init;
+                    ch->enable_modulation  = 1;
+                    wave_init              = wave->init;
+                    ch->modulate_position  = wave_init;
+                    ch->wave_position      = wave_init << 11;
+                    ch->modulate_timer     = wave->mod_speed;
                     ch->modulate_direction = 1;
+                    if (wave_init + wave->mod_size > wave->max) {
+                        ch->modulate_direction = -1;
+                    }
+                } else {
+                    ch->wave_position = wave->init << 11;
                 }
-
             }
         }
-        
-        // fx command processing
 
-        ch->wave_vol_slide_val = 0; // reset volume slide value
-        ch->wave_porta_val     = 0; // reset portamento value
-        
+        ch->wave_vol_slide_val = 0;
+        ch->wave_porta_val     = 0;
+
         for (i = 0; i < 2; i++) {
-            
-            u32 fx_command; // effect type
-            fx_command = *(u16*)&perflist->commands[i];
-            
+            u32 fx_command = *(u16*)((void*)perflist + 4 + i * 2);
+
             if (fx_command >> 8 != 0) {
-                
-                u32 fx_param;                 // effect param
-                fx_param = fx_command & 0xFF; // get the upper byte
-                
-                switch (fx_command >> 8) { // get the lower byte
-                    
+                u32 fx_param = fx_command & 0xFF;
+
+                switch (fx_command >> 8) {
                     case PERF_PORTA_UP:
-                        // 1xx - slides the note up by X units
                         ch->wave_porta_val = fx_param;
                         break;
-                    
                     case PERF_PORTA_DOWN:
-                        // 2xx - slides the note down by X units
                         ch->wave_porta_val = -fx_param;
                         break;
-
                     case PERF_GOTO_STEP:
-                        // 5xx - jumps to perf step X after the current step     
-                        if (ch->perfstep_loop_counter == 0 || 
-                           (ch->perfstep_loop_counter--, 
-                            ch->perfstep_loop_counter != 0)) {
+                        if (ch->perfstep_delay == 0 || --ch->perfstep_delay != 0) {
                             ch->cur_perfstep = fx_param;
                         }
                         break;
-
                     case PERF_REPEAT_STEP:
-                        // 6xx - repeats the current step X times
-                        if (ch->perfstep_loop_counter == 0) {
-                            if (fx_param != 0) {
-                                ch->perfstep_loop_counter = fx_param+1;
-                            } else {
-                                ch->perfstep_loop_counter = 0;
-                            }
+                        if (ch->perfstep_delay == 0) {
+                            ch->perfstep_delay = fx_param ? fx_param + 1 : 0;
                         }
                         break;
-
                     case PERF_VOLSLIDE_UP:
-                        // Axx - slides the volume up by X units
                         ch->wave_vol_slide_val = fx_param;
                         break;
-
                     case PERF_VOLSLIDE_DOWN:
-                        // Bxx - slides the volume down by X units
                         ch->wave_vol_slide_val = -fx_param;
                         break;
-
                     case PERF_SET_VOLUME:
-                        // Cxx - sets the waveform volume
                         ch->wave_volume = fx_param;
                         break;
-
                     case PERF_SET_SPEED:
-                        // Fxx - sets the speed value (ticks per step)
                         ch->perfstep_speed = fx_param;
                         break;
-
                     default:
                         break;
-
-                }   
-                
+                }
             }
         }
     }
@@ -796,9 +748,10 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 
     // instrument data processing
     if (instrument_idx) {
+        GAXSongData* song = replayer->song;
 
         // get the instrument header
-        instrument = (GAX_instrument*)(replayer->song->instrument_data + instrument_idx*4);
+        instrument = ((GAX_instrument**)song->instrument_data)[instrument_idx];
 
         // instrument initialization
         ch->instrument     = instrument;
@@ -845,18 +798,16 @@ void GAXTracker_process_step(GAX_channel *ch, GAX_player* replayer, b8 flag) {
 
         case TONE_PORTA:
             // 3xx - slides the note to the next one by X units
-            // (the portamento is constantly applied each tick unlike XM)
             if (fx_param) {
-                ch->target_pitch   = (note-2)*32; // convert current note into frequency space
-                ch->toneporta_lerp = (ch->target_pitch-ch->cur_pitch)/fx_param;
+                ch->target_pitch   = (note - 2) << 5;
+                ch->toneporta_lerp = (ch->target_pitch - ch->cur_pitch) / fx_param;
             }
             break;
 
         case MODULATE_SPEED:
             // 7xy - sets the speed numerator and denominator values independently
-            // this creates a swing effect or emulates a non-integer tempo
-            replayer->speed_buf   = fx_param >> 4 | (fx_param << 8 & 0xF00); // swap nybbles
-            replayer->speed_timer = (fx_param >> 4) - 1; // start from the lower nybble
+            replayer->speed_buf   = fx_param >> 4 | ((fx_param << 8) & 0xF00);
+            replayer->speed_timer = replayer->speed_buf - 1;
             break;
 
         case VOLSLIDE_UP:

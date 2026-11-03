@@ -10,7 +10,7 @@
 // functions
 
 // void GAXOutput_open
-// https://decomp.me/scratch/TnIzW - beanieaxolotl
+// https://decomp.me/scratch/iTLP9 - Warm Mosquito (anon) (fork of TnIzW)
 // accuracy -> 100%
 
 void GAXOutput_open(GAX_player* player) {

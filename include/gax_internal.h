@@ -51,18 +51,18 @@ enum step_mask {
 
 #define GAX_ALLOC(sz) ({\
     u8 *out; \
-    u8 *scratchptr = GAX_ram->scratch_mem; \
+    u8 *scratchptr = (u8*)GAX_ram->unk80; \
     if ((u32)scratchptr & 3) { \
         u32 newsize = GAX_ALIGN(scratchptr, 4) - (u32)scratchptr; \
-        GAX_ram->scratch_mem = (u8 *)GAX_ALIGN(scratchptr, 4); \
-        GAX_ram->scratch_mem_size -= newsize; \
+        GAX_ram->unk80 = GAX_ALIGN(scratchptr, 4); \
+        GAX_ram->free_mem -= newsize; \
     } \
-    if ((GAX_ram->params->debug) && ((sz) > GAX_ram->scratch_mem_size)) { \
+    if ((GAX_ram->params->debug) && ((sz) > GAX_ram->free_mem)) { \
         GAX_ASSERT("GAX2_INIT", "OUT OF MEMORY"); \
     } \
-    GAX_ram->scratch_mem_size -= (sz); \
-    out = GAX_ram->scratch_mem; \
-    GAX_ram->scratch_mem += (sz); \
+    GAX_ram->free_mem -= (sz); \
+    out = (u8*)GAX_ram->unk80; \
+    GAX_ram->unk80 += (sz); \
     out; \
     })
 
@@ -352,7 +352,7 @@ struct {
     u32 unk4C[0x2];
     u32 irq_state;
     u8  volboost_level;
-    u8  unk59;
+    b8  fx_bool;
     u8  playback_state;
     u8  unk5B;
     u8  unk5C;
@@ -376,8 +376,8 @@ struct {
     u32   unk80;
     u32   free_mem;
     u8    fx_indexes[MAX_FX_CHANNELS];
-    u8*   scratchmem;
-    u32   scratchmem_size;
+    u8*   scratch_mem;
+    u32   scratch_mem_size;
 
     GAX_FX_channel fxch[MAX_FX_CHANNELS];
 
@@ -405,3 +405,13 @@ typedef struct unknownArgs {
     u32  dc_thing3;
 
 } unknownArgs;
+
+extern void GAX_umull(void);
+extern u32 _call_via_r3();
+
+#define scratchmem scratch_mem
+#define scratchmem_size scratch_mem_size
+
+#define end_addr_1 unk80
+
+#define unk59 fx_bool
